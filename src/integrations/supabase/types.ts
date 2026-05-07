@@ -14,16 +14,231 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity_log: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          payload: Json
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          payload?: Json
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          payload?: Json
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      candidates: {
+        Row: {
+          client_visible: boolean
+          created_at: string
+          created_by: string | null
+          current_firm: string | null
+          current_title: string | null
+          email: string | null
+          id: string
+          ir_functions: Database["public"]["Enums"]["ir_function"][]
+          last_contact_date: string | null
+          linkedin_url: string | null
+          location_bucket: Database["public"]["Enums"]["location_bucket"] | null
+          name: string
+          next_action: string | null
+          next_action_date: string | null
+          notes: string | null
+          phone: string | null
+          pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_visible?: boolean
+          created_at?: string
+          created_by?: string | null
+          current_firm?: string | null
+          current_title?: string | null
+          email?: string | null
+          id?: string
+          ir_functions?: Database["public"]["Enums"]["ir_function"][]
+          last_contact_date?: string | null
+          linkedin_url?: string | null
+          location_bucket?:
+            | Database["public"]["Enums"]["location_bucket"]
+            | null
+          name: string
+          next_action?: string | null
+          next_action_date?: string | null
+          notes?: string | null
+          phone?: string | null
+          pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_visible?: boolean
+          created_at?: string
+          created_by?: string | null
+          current_firm?: string | null
+          current_title?: string | null
+          email?: string | null
+          id?: string
+          ir_functions?: Database["public"]["Enums"]["ir_function"][]
+          last_contact_date?: string | null
+          linkedin_url?: string | null
+          location_bucket?:
+            | Database["public"]["Enums"]["location_bucket"]
+            | null
+          name?: string
+          next_action?: string | null
+          next_action_date?: string | null
+          notes?: string | null
+          phone?: string | null
+          pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pe_firms: {
+        Row: {
+          aum_usd: number | null
+          created_at: string
+          hq_city: string | null
+          hq_state: string | null
+          id: string
+          name: string
+          notes: string | null
+          status: Database["public"]["Enums"]["pe_status"]
+          tier: Database["public"]["Enums"]["pe_tier"] | null
+          updated_at: string
+        }
+        Insert: {
+          aum_usd?: number | null
+          created_at?: string
+          hq_city?: string | null
+          hq_state?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["pe_status"]
+          tier?: Database["public"]["Enums"]["pe_tier"] | null
+          updated_at?: string
+        }
+        Update: {
+          aum_usd?: number | null
+          created_at?: string
+          hq_city?: string | null
+          hq_state?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["pe_status"]
+          tier?: Database["public"]["Enums"]["pe_tier"] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "recruiter" | "client"
+      ir_function:
+        | "Capital Raising"
+        | "LP Relations"
+        | "Reporting & Analytics"
+        | "Marketing & Comms"
+        | "Strategy"
+      location_bucket:
+        | "Florida"
+        | "Texas"
+        | "Tri-State"
+        | "Other US"
+        | "International"
+      pe_status:
+        | "Target"
+        | "Contacted"
+        | "Sourced From"
+        | "Declined"
+        | "Not Relevant"
+      pe_tier: "Tier 1" | "Tier 2" | "Tier 3"
+      pipeline_stage:
+        | "Sourced"
+        | "Contacted"
+        | "Engaged"
+        | "Screening"
+        | "Client Interview"
+        | "Offer"
+        | "Placed"
+        | "Declined"
+        | "Passed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +365,41 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["recruiter", "client"],
+      ir_function: [
+        "Capital Raising",
+        "LP Relations",
+        "Reporting & Analytics",
+        "Marketing & Comms",
+        "Strategy",
+      ],
+      location_bucket: [
+        "Florida",
+        "Texas",
+        "Tri-State",
+        "Other US",
+        "International",
+      ],
+      pe_status: [
+        "Target",
+        "Contacted",
+        "Sourced From",
+        "Declined",
+        "Not Relevant",
+      ],
+      pe_tier: ["Tier 1", "Tier 2", "Tier 3"],
+      pipeline_stage: [
+        "Sourced",
+        "Contacted",
+        "Engaged",
+        "Screening",
+        "Client Interview",
+        "Offer",
+        "Placed",
+        "Declined",
+        "Passed",
+      ],
+    },
   },
 } as const
