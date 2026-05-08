@@ -23,6 +23,8 @@ export const listCandidates = createServerFn({ method: "GET" })
     if (data.irFunction) q = q.contains("ir_functions", [data.irFunction]);
     if (data.clientVisible === "yes") q = q.eq("client_visible", true);
     if (data.clientVisible === "no") q = q.eq("client_visible", false);
+    if (data.shortlisted === "yes") q = q.eq("shortlisted", true);
+    if (data.shortlisted === "no") q = q.eq("shortlisted", false);
     if (data.search) {
       const s = data.search.replace(/[%_]/g, "");
       q = q.or(`name.ilike.%${s}%,current_firm.ilike.%${s}%,email.ilike.%${s}%`);
