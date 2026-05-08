@@ -13,7 +13,15 @@ import { Upload, Star, StarOff, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
+type CandidatesSearch = { stage?: string; location?: string; irFunction?: string; search?: string };
+
 export const Route = createFileRoute("/_authenticated/candidates")({
+  validateSearch: (raw: Record<string, unknown>): CandidatesSearch => ({
+    stage: typeof raw.stage === "string" ? raw.stage : undefined,
+    location: typeof raw.location === "string" ? raw.location : undefined,
+    irFunction: typeof raw.irFunction === "string" ? raw.irFunction : undefined,
+    search: typeof raw.search === "string" ? raw.search : undefined,
+  }),
   component: CandidatesPage,
 });
 
