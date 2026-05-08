@@ -23,28 +23,124 @@ const optBool = z.preprocess((v) => {
   return undefined;
 }, z.boolean().optional());
 
+// ---------- Value-level normalizers ----------
+
+const norm = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+
+const PIPELINE_VALUE_ALIASES: Record<string, PipelineStage> = {
+  "sourced": "Sourced", "new": "Sourced", "lead": "Sourced",
+  "contacted": "Contacted", "outreach": "Contacted", "reached out": "Contacted",
+  "engaged": "Engaged", "responding": "Engaged", "in conversation": "Engaged",
+  "screening": "Screening", "screen": "Screening", "phone screen": "Screening", "interviewing": "Screening",
+  "client interview": "Client Interview", "client int": "Client Interview", "with client": "Client Interview",
+  "offer": "Offer", "offer extended": "Offer",
+  "placed": "Placed", "hired": "Placed",
+  "declined": "Declined", "rejected": "Declined", "rejected by transformari": "Declined", "rejected by client": "Declined", "passed by client": "Declined",
+  "passed": "Passed", "not interested": "Passed", "candidate passed": "Passed", "withdrew": "Passed", "withdrawn": "Passed",
+};
+
+const IR_VALUE_ALIASES: Record<string, IrFunction> = {
+  "capital raising": "Capital Raising", "fundraising": "Capital Raising", "fundraising bd": "Capital Raising",
+  "bd": "Capital Raising", "business development": "Capital Raising", "capital formation": "Capital Raising",
+  "lp relations": "LP Relations", "lp relationships": "LP Relations", "investor relations": "LP Relations",
+  "client services": "LP Relations", "client services lp reporting": "LP Relations", "lp servicing": "LP Relations", "client service": "LP Relations",
+  "reporting analytics": "Reporting & Analytics", "reporting": "Reporting & Analytics", "analytics": "Reporting & Analytics",
+  "ir reporting": "Reporting & Analytics", "data": "Reporting & Analytics",
+  "marketing comms": "Marketing & Comms", "marketing": "Marketing & Comms", "communications": "Marketing & Comms", "comms": "Marketing & Comms", "content": "Marketing & Comms",
+  "strategy": "Strategy", "ir strategy": "Strategy",
+};
+
+const TRI_STATE = new Set(["NY", "NJ", "CT"]);
+const US_STATES = new Set([
+  "AL","AK","AZ","AR","CA","CO","DE","DC","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT",
+  "NE","NV","NH","NM","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","UT","VT","VA","WA","WV","WI","WY",
+]);
+const INTL_HINTS = ["london", "uk", "england", "scotland", "ireland", "dublin", "paris", "france", "germany", "berlin", "munich",
+  "zurich", "switzerland", "geneva", "amsterdam", "netherlands", "madrid", "spain", "milan", "italy", "rome",
+  "stockholm", "sweden", "oslo", "norway", "copenhagen", "denmark", "helsinki", "finland",
+  "tokyo", "japan", "singapore", "hong kong", "shanghai", "beijing", "china", "seoul", "korea",
+  "sydney", "melbourne", "australia", "toronto", "vancouver", "montreal", "canada", "mexico", "brazil", "dubai", "uae"];
+
+function bucketLocation(raw: string): LocationBucket | undefined {
+  const t = raw.trim();
+  if (!t) return undefined;
+  const lower = t.toLowerCase();
+  // Direct bucket match
+  const direct = LOCATION_BUCKETS.find((b) => b.toLowerCase() === lower);
+  if (direct) return direct;
+  if (lower.includes("tri-state") || lower.includes("tri state")) return "Tri-State";
+  if (INTL_HINTS.some((h) => lower.includes(h))) return "International";
+  // State code: last token after comma, or 2-letter token
+  const parts = t.split(",").map((p) => p.trim()).filter(Boolean);
+  let state = parts.length > 1 ? parts[parts.length - 1].toUpperCase() : "";
+  if (state.length > 2) {
+    const m = state.match(/\b([A-Z]{2})\b/);
+    state = m ? m[1] : "";
+  }
+  if (!state) {
+    const m = t.toUpperCase().match(/\b([A-Z]{2})\b/);
+    state = m ? m[1] : "";
+  }
+  if (state === "FL" || lower.includes("florida")) return "Florida";
+  if (state === "TX" || lower.includes("texas")) return "Texas";
+  if (TRI_STATE.has(state) || ["new york", "new jersey", "connecticut"].some((s) => lower.includes(s))) return "Tri-State";
+  if (US_STATES.has(state)) return "Other US";
+  return undefined;
+}
+
+function aliasPipeline(v: unknown): unknown {
+  if (typeof v !== "string") return v ?? "Sourced";
+  const t = v.trim();
+  if (!t) return "Sourced";
+  return PIPELINE_VALUE_ALIASES[norm(t)] ?? t;
+}
+
+function aliasIrFunctions(v: unknown): unknown {
+  let arr: string[] = [];
+  if (Array.isArray(v)) arr = v.filter((x): x is string => typeof x === "string");
+  else if (typeof v === "string" && v.trim()) arr = v.split(/[,;|/]/).map((s) => s.trim()).filter(Boolean);
+  const mapped = arr.map((s) => IR_VALUE_ALIASES[norm(s)] ?? s);
+  // Dedupe valid values only
+  const valid = mapped.filter((s): s is IrFunction => (IR_FUNCTIONS as readonly string[]).includes(s));
+  return Array.from(new Set(valid));
+}
+
+function aliasLocation(v: unknown): unknown {
+  if (typeof v !== "string" || !v.trim()) return undefined;
+  return bucketLocation(v) ?? undefined;
+}
+
+function aliasDate(v: unknown): unknown {
+  if (v == null || v === "") return undefined;
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  const s = String(v).trim();
+  if (!s) return undefined;
+  // mm/dd/yyyy or m/d/yy(yy)
+  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) {
+    let [, mm, dd, yy] = m;
+    if (yy.length === 2) yy = (Number(yy) > 50 ? "19" : "20") + yy;
+    return `${yy.padStart(4, "0")}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+  }
+  // yyyy-mm-dd already
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s);
+  return Number.isFinite(d.getTime()) ? d.toISOString().slice(0, 10) : undefined;
+}
+
 export const candidateRowSchema = z.object({
   name: z.string().trim().min(1, "Name required").max(120),
   email: optStr.pipe(z.string().email().optional() as never).or(z.undefined()).optional(),
   phone: optStr,
   current_firm: optStr,
   current_title: optStr,
-  pipeline_stage: z.preprocess((v) => (v ? String(v).trim() : "Sourced"), z.enum(PIPELINE_STAGES)),
-  location_bucket: z.preprocess(
-    (v) => (typeof v === "string" && v.trim() ? v.trim() : undefined),
-    z.enum(LOCATION_BUCKETS).optional(),
-  ),
-  ir_functions: z.preprocess(
-    (v) => {
-      if (Array.isArray(v)) return v;
-      if (typeof v === "string" && v.trim()) return v.split(/[,;|]/).map((s) => s.trim()).filter(Boolean);
-      return [];
-    },
-    z.array(z.enum(IR_FUNCTIONS)).default([]),
-  ),
+  pipeline_stage: z.preprocess(aliasPipeline, z.enum(PIPELINE_STAGES)),
+  location_bucket: z.preprocess(aliasLocation, z.enum(LOCATION_BUCKETS).optional()),
+  ir_functions: z.preprocess(aliasIrFunctions, z.array(z.enum(IR_FUNCTIONS)).default([])),
   source: optStr,
   linkedin_url: optStr,
   notes: optStr,
+  date_sourced: z.preprocess(aliasDate, z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
   client_visible: optBool,
   shortlisted: optBool,
 });
@@ -74,12 +170,13 @@ export const CANDIDATE_HEADER_ALIASES: Record<string, string[]> = {
   phone: ["phone", "phone number", "mobile", "cell", "telephone"],
   current_firm: ["firm", "firm name", "company", "company name", "employer", "organization", "organisation", "current company", "current employer", "current firm"],
   current_title: ["title", "job title", "position", "role", "current title", "current position", "current role"],
-  pipeline_stage: ["stage", "pipeline", "pipeline stage", "status"],
-  location_bucket: ["location", "region", "market", "geo"],
+  pipeline_stage: ["stage", "pipeline", "pipeline stage", "status", "candidate status"],
+  location_bucket: ["location", "region", "market", "geo", "city", "city state"],
   ir_functions: ["function", "functions", "ir function", "ir functions"],
-  source: ["source", "lead source", "sourced from", "referrer"],
+  source: ["source", "lead source", "sourced from", "sourced by", "referrer", "owner"],
   linkedin_url: ["linkedin", "linkedin url", "linkedin profile", "profile url"],
   notes: ["notes", "comments", "remarks"],
+  date_sourced: ["date sourced", "sourced date", "date added", "added on", "source date"],
   client_visible: ["client visible", "visible", "show client"],
   shortlisted: ["shortlisted", "shortlist", "starred"],
 };
@@ -103,7 +200,8 @@ export const CANDIDATE_FIELDS = [
   { key: "pipeline_stage", label: "Pipeline stage" },
   { key: "location_bucket", label: "Location" },
   { key: "ir_functions", label: "IR functions (comma-separated)" },
-  { key: "source", label: "Source" },
+  { key: "source", label: "Sourced by" },
+  { key: "date_sourced", label: "Date sourced" },
   { key: "linkedin_url", label: "LinkedIn URL" },
   { key: "notes", label: "Notes" },
   { key: "client_visible", label: "Client visible" },
