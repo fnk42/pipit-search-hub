@@ -51,6 +51,7 @@ export type Database = {
           created_by: string | null
           current_firm: string | null
           current_title: string | null
+          date_sourced: string | null
           email: string | null
           id: string
           ir_functions: Database["public"]["Enums"]["ir_function"][]
@@ -73,6 +74,7 @@ export type Database = {
           created_by?: string | null
           current_firm?: string | null
           current_title?: string | null
+          date_sourced?: string | null
           email?: string | null
           id?: string
           ir_functions?: Database["public"]["Enums"]["ir_function"][]
@@ -97,6 +99,7 @@ export type Database = {
           created_by?: string | null
           current_firm?: string | null
           current_title?: string | null
+          date_sourced?: string | null
           email?: string | null
           id?: string
           ir_functions?: Database["public"]["Enums"]["ir_function"][]
