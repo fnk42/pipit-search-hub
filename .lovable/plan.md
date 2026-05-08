@@ -1,78 +1,107 @@
-# Transformari IR Search — Phase 1 Plan
+# Phase 2 Plan — Candidates CRUD + CSV Import
 
-Build the foundation: auth, schema, app shell, and dashboard home. Candidate table, PE firm universe, client view detail, weekly report, and CSV import are deferred to later phases.
+Build the Candidates list, dedicated detail page, single-row create/edit/delete, and CSV import for both candidates and PE firms. Single-row edits only — no multi-select. Activity log continues to capture stage changes via the existing trigger.
 
-## 1. Backend (Lovable Cloud)
+## 1. Candidates list (`/candidates`)
 
-**Enable Lovable Cloud** for auth + Postgres.
+Replace the current "Coming soon" stub with a real recruiter workspace.
 
-### Auth
-- Email magic-link sign-in.
-- Whitelist enforced **at sign-in** via an edge function hook (`before-user-created` / custom sign-in server route): allow `*@goldenpipitrecruiting.com` and exact match `sean@transformari.com`. All others get a clean "Access denied" page; no magic link is sent.
-- Role assignment on first sign-in: domain `@goldenpipitrecruiting.com` → `recruiter`; `sean@transformari.com` → `client`.
+**Layout**
+- Page header: "Candidates" title, total count pill, primary "Add candidate" button (gold), secondary "Import CSV" button.
+- Toolbar row (sticky on scroll): search input (name / firm / email), filter dropdowns for Pipeline stage, Location, IR function, Client visible (Yes/No/All). "Clear filters" link when any active.
+- Table (shadcn `Table`):
+  - Columns: Name (link), Current firm, Title, Stage (colored badge), Location, Last contact, Next action, Client visible (eye icon toggle).
+  - Row click → navigate to `/candidates/$id`.
+  - Stage badge uses navy/gold/muted variants per stage group (active vs terminal).
+  - Empty state: navy illustration block + "No candidates match these filters" + "Clear filters" / "Add candidate".
+- Mobile (≤640px): collapses to a card list — name + firm + stage badge + next action.
 
-### Schema
-- `app_role` enum: `recruiter`, `client`.
-- `user_roles (id, user_id → auth.users, role app_role, unique(user_id, role))` with `has_role()` SECURITY DEFINER function (per Lovable user-roles pattern; never store roles on profiles).
-- `profiles (id → auth.users, email, full_name, created_at)` auto-created via trigger on `auth.users` insert.
-- `location_bucket` enum: Florida, Texas, Tri-State, Other US, International.
-- `pipeline_stage` enum: Sourced, Contacted, Engaged, Screening, Client Interview, Offer, Placed, Declined, Passed.
-- `ir_function` enum: Capital Raising, LP Relations, Reporting & Analytics, Marketing & Comms, Strategy.
-- `pe_status` enum: Target, Contacted, Sourced From, Declined, Not Relevant.
-- `pe_tier` enum: Tier 1, Tier 2, Tier 3.
-- `candidates` — all fields per spec; `ir_functions` as `ir_function[]`; `notes` text (markdown); `client_visible` boolean default false.
-- `pe_firms` — per spec.
-- `activity_log (id, user_id, action, entity_type, entity_id, payload jsonb, created_at)`. Trigger on `candidates` writes a row only when `pipeline_stage` changes.
+**Client view**
+- Same route, but the table is read-only: no Add/Import/edit controls, only `client_visible=true` candidates (RLS already enforces this), and the "Client visible" column is hidden.
 
-### RLS
-- `candidates`, `pe_firms`, `activity_log`, `profiles`, `user_roles`: enable RLS.
-- Recruiters: full SELECT/INSERT/UPDATE/DELETE on candidates, pe_firms, activity_log via `has_role(auth.uid(), 'recruiter')`.
-- Clients: SELECT on `candidates` filtered to `client_visible = true`. No access to pe_firms or activity_log. (Dashboard counts for client also reflect only visible candidates.)
-- `user_roles`: users read their own; only recruiters insert.
+## 2. Candidate detail (`/candidates/$id`)
 
-### Seed data
-- 10 candidates spread across all 9 pipeline stages and 5 location buckets, with realistic names and current_firms drawn from Carlyle, KKR, Vista Equity, Apollo, Blackstone, TPG, Bain Capital, Warburg Pincus, Silver Lake, Advent.
-- 15 PE firms with real-world AUM and HQ city/state, mixed tiers and statuses.
-- A constant `TOTAL_PE_UNIVERSE = 91` used by the coverage card.
+Dedicated full page, two-column on desktop, stacked on mobile.
 
-## 2. Frontend
+**Left column (8/12)**
+- Header: name, current title @ current firm, LinkedIn icon link, edit/delete icon buttons (recruiters only).
+- Stage selector: large dropdown that writes immediately and toasts "Stage moved to X" — this is the trigger that writes to `activity_log`.
+- Tabs: **Overview** (all editable fields in a form) / **Activity** (timeline of `activity_log` rows for this candidate, recruiter-only) / **Notes** (markdown textarea, autosave on blur).
+- Overview form fields: name, email, phone, current_firm, current_title, location_bucket, ir_functions (multi-select chips), source, last_contact_date, next_action, next_action_date, linkedin_url, client_visible toggle.
+- Save bar appears when form is dirty: "Save changes" (gold) / "Discard". Validation via Zod.
 
-### Design tokens (`src/styles.css`)
-- Convert palette to oklch: navy `#0F1C2E` → `--primary`; gold `#F5A623` → `--accent`; off-white `--background`; pure white `--card`; muted slate borders.
-- Inter via Google Fonts in `__root.tsx` head; set as default sans.
-- No `.dark` overrides used; light only.
-- Shadow tokens: `--shadow-soft`, `--shadow-card` (subtle, layered).
-- Gold pill, gold left-border active indicator, navy hero card all use semantic tokens.
+**Right column (4/12)**
+- "Quick facts" card: stage, location, IR functions chips, client visible status.
+- "Engagement" card: created date, last updated, days in current stage.
+- Delete confirmation uses shadcn `AlertDialog`.
 
-### Routes (TanStack Start, file-based)
-- `src/routes/login.tsx` — email input, magic-link request, "Access denied" state.
-- `src/routes/auth/callback.tsx` — handles magic-link return, role lookup, redirect to `/`.
-- `src/routes/_authenticated.tsx` — `beforeLoad` gate on Supabase session; renders shell.
-- `src/routes/_authenticated/index.tsx` — Dashboard home.
-- Stubs (empty "Coming soon" pages so sidebar links work): `candidates.tsx`, `pe-firms.tsx`, `weekly-report.tsx`, `activity-log.tsx`, `settings.tsx`.
+**Client view of detail page**
+- Read-only. No stage selector, no edit buttons, no Activity tab, notes hidden. Shows only: name, firm, title, location, IR functions, stage. If candidate is not `client_visible`, RLS returns nothing → render NotFound.
 
-### App shell (`src/components/shell/`)
-- `TopBar` — wordmark left, centered engagement title, avatar + role pill right.
-- `AppSidebar` — shadcn `Sidebar` with `collapsible="icon"`. Items filtered by role (recruiter sees 6, client sees 3). Active item: navy bg + 3px gold left border.
-- `Footer` — single muted line.
-- `SidebarTrigger` in top bar so mobile toggle is always reachable.
+## 3. Add candidate
 
-### Dashboard blocks (`src/components/dashboard/`)
-- `EngagementSummary` — navy hero card, white text, 3 columns. Search initiated = MIN(candidates.created_at). Days active = today − that date. Candidates in pipeline = count excluding Placed/Declined/Passed.
-- `PipelineFunnel` — horizontal funnel from Sourced → Placed using seeded counts; loading skeleton; empty state copy as specified.
-- `StatCardsRow` — three shadcn `Card`s: geography bar chart (recharts via shadcn `chart`), IR function donut, "X / 91 firms" with gold progress bar.
-- `RecentActivity` — last 10 activity_log rows joined to profiles for user name; empty state copy as specified.
+- "Add candidate" button opens a shadcn `Dialog` with the same Zod-validated form (minimal required fields: name + stage).
+- On success → toast + navigate to the new `/candidates/$id`.
 
-### Data fetching
-- Server functions in `src/lib/dashboard.functions.ts` protected by `requireSupabaseAuth`, returning role-aware aggregates (client view filters by `client_visible`).
-- React Query in components via `useServerFn`.
+## 4. CSV Import (`/import`)
 
-## 3. Acceptance verification
-- Recruiter email → full sidebar + dashboard with seeded numbers.
-- Client email → 3-item sidebar + dashboard reflecting client-visible subset.
-- Other email → Access denied at `/login`.
-- 375px viewport: vertical stack, sidebar collapses to off-canvas, top bar wraps cleanly.
-- Only navy / gold / white / muted slate appear in components.
+New route under `_authenticated`, recruiter-only (sidebar item visible only to recruiters; client gets a 403 redirect).
 
-## Out of scope (later phases)
-Candidate detail/table CRUD, PE firm management, weekly report generation, CSV import, settings UI, profile editing.
+**Two tabs: Candidates / PE firms.**
+
+Flow per tab:
+1. **Upload** — drag-and-drop or file picker, `.csv` only, ≤2MB. Parsed in-browser with `papaparse`.
+2. **Map columns** — table showing each CSV header with a dropdown to map to a target field (or "Skip"). Auto-suggests by header name match. Required target fields shown with a red asterisk; rows with missing required fields are flagged.
+3. **Preview & validate** — first 20 rows rendered with per-cell validation errors (Zod). Counts: "X valid · Y errors". Errors block import.
+4. **Import** — server function inserts in batches of 100 inside a single Supabase call per batch. Returns `{inserted, skipped, errors}`. Toast + link to the relevant list.
+
+**Candidate target fields**: name (req), email, current_firm, current_title, pipeline_stage (defaults to Sourced), location_bucket, ir_functions (comma-separated), source, linkedin_url, notes, client_visible (defaults false).
+**PE firm target fields**: name (req), tier, status (defaults to Target), aum_usd, hq_city, hq_state, notes.
+
+Enums are validated against the Postgres enum values; unknown values surface as cell errors with a "did you mean…" hint.
+
+## 5. Server functions (`src/lib/candidates.functions.ts`, `src/lib/import.functions.ts`)
+
+All protected by `requireSupabaseAuth` so RLS enforces role boundaries automatically.
+
+- `listCandidates({ search, stage, location, irFunction, clientVisible })` — returns rows.
+- `getCandidate(id)` — single row + last 20 activity_log entries (recruiter only for activity).
+- `createCandidate(input)` / `updateCandidate(id, patch)` / `deleteCandidate(id)`.
+- `importCandidates(rows)` / `importPeFirms(rows)` — bulk insert, returns counts and errors.
+
+Stage changes flow through the existing `log_pipeline_change` trigger; no extra logging code needed.
+
+## 6. Sidebar + routing updates
+
+- Wire the existing **Candidates** sidebar item to `/candidates`.
+- Add a new **Import** sidebar item (recruiter only), icon `Upload`.
+- Remove "Coming soon" from `candidates.tsx`.
+- New files:
+  - `src/routes/_authenticated/candidates.index.tsx` (list)
+  - `src/routes/_authenticated/candidates.$id.tsx` (detail)
+  - `src/routes/_authenticated/import.tsx` (CSV)
+  - `src/components/candidates/CandidatesTable.tsx`
+  - `src/components/candidates/CandidateFilters.tsx`
+  - `src/components/candidates/CandidateForm.tsx`
+  - `src/components/candidates/AddCandidateDialog.tsx`
+  - `src/components/candidates/ActivityTimeline.tsx`
+  - `src/components/candidates/StageBadge.tsx`
+  - `src/components/import/CsvImporter.tsx` (shared UI)
+  - `src/lib/candidates.functions.ts`
+  - `src/lib/import.functions.ts`
+  - `src/lib/csv-schemas.ts` (Zod schemas + enum maps)
+
+## 7. Dependencies
+
+Add: `papaparse`, `@types/papaparse`, `react-dropzone`. (Zod, shadcn Dialog/Table/Tabs/AlertDialog/Select/Toast all already present.)
+
+## 8. Acceptance
+
+- Recruiter: can list, filter, search, open detail, edit any field, change stage (logs activity), toggle client_visible, delete with confirm, add via dialog, and import a CSV with column mapping + preview.
+- Client (Sean): sees a read-only table of only `client_visible=true` candidates with limited columns, can open a sanitized detail page, no Add/Import/Edit controls anywhere, no Import sidebar item.
+- 375px viewport: list collapses to cards, detail stacks to single column, CSV mapper is horizontally scrollable.
+- Stage changes visible in dashboard's Recent Activity feed.
+
+## Out of scope (still deferred)
+
+PE firm full CRUD UI (only CSV import for now), weekly report generation, settings UI, profile editing, bulk multi-select edits.

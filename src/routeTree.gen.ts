@@ -15,9 +15,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedWeeklyReportRouteImport } from './routes/_authenticated/weekly-report'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPeFirmsRouteImport } from './routes/_authenticated/pe-firms'
+import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCandidatesRouteImport } from './routes/_authenticated/candidates'
 import { Route as AuthenticatedActivityLogRouteImport } from './routes/_authenticated/activity-log'
+import { Route as AuthenticatedCandidatesIdRouteImport } from './routes/_authenticated/candidates.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -49,6 +51,11 @@ const AuthenticatedPeFirmsRoute = AuthenticatedPeFirmsRouteImport.update({
   path: '/pe-firms',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedImportRoute = AuthenticatedImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -65,26 +72,36 @@ const AuthenticatedActivityLogRoute =
     path: '/activity-log',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedCandidatesIdRoute =
+  AuthenticatedCandidatesIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedCandidatesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/activity-log': typeof AuthenticatedActivityLogRoute
-  '/candidates': typeof AuthenticatedCandidatesRoute
+  '/candidates': typeof AuthenticatedCandidatesRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/import': typeof AuthenticatedImportRoute
   '/pe-firms': typeof AuthenticatedPeFirmsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/weekly-report': typeof AuthenticatedWeeklyReportRoute
+  '/candidates/$id': typeof AuthenticatedCandidatesIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/activity-log': typeof AuthenticatedActivityLogRoute
-  '/candidates': typeof AuthenticatedCandidatesRoute
+  '/candidates': typeof AuthenticatedCandidatesRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/import': typeof AuthenticatedImportRoute
   '/pe-firms': typeof AuthenticatedPeFirmsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/weekly-report': typeof AuthenticatedWeeklyReportRoute
+  '/candidates/$id': typeof AuthenticatedCandidatesIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -92,11 +109,13 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/activity-log': typeof AuthenticatedActivityLogRoute
-  '/_authenticated/candidates': typeof AuthenticatedCandidatesRoute
+  '/_authenticated/candidates': typeof AuthenticatedCandidatesRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/import': typeof AuthenticatedImportRoute
   '/_authenticated/pe-firms': typeof AuthenticatedPeFirmsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/weekly-report': typeof AuthenticatedWeeklyReportRoute
+  '/_authenticated/candidates/$id': typeof AuthenticatedCandidatesIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -106,9 +125,11 @@ export interface FileRouteTypes {
     | '/activity-log'
     | '/candidates'
     | '/dashboard'
+    | '/import'
     | '/pe-firms'
     | '/settings'
     | '/weekly-report'
+    | '/candidates/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -116,9 +137,11 @@ export interface FileRouteTypes {
     | '/activity-log'
     | '/candidates'
     | '/dashboard'
+    | '/import'
     | '/pe-firms'
     | '/settings'
     | '/weekly-report'
+    | '/candidates/$id'
   id:
     | '__root__'
     | '/'
@@ -127,9 +150,11 @@ export interface FileRouteTypes {
     | '/_authenticated/activity-log'
     | '/_authenticated/candidates'
     | '/_authenticated/dashboard'
+    | '/_authenticated/import'
     | '/_authenticated/pe-firms'
     | '/_authenticated/settings'
     | '/_authenticated/weekly-report'
+    | '/_authenticated/candidates/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -182,6 +207,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPeFirmsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/import': {
+      id: '/_authenticated/import'
+      path: '/import'
+      fullPath: '/import'
+      preLoaderRoute: typeof AuthenticatedImportRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -203,13 +235,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedActivityLogRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/candidates/$id': {
+      id: '/_authenticated/candidates/$id'
+      path: '/$id'
+      fullPath: '/candidates/$id'
+      preLoaderRoute: typeof AuthenticatedCandidatesIdRouteImport
+      parentRoute: typeof AuthenticatedCandidatesRoute
+    }
   }
 }
 
+interface AuthenticatedCandidatesRouteChildren {
+  AuthenticatedCandidatesIdRoute: typeof AuthenticatedCandidatesIdRoute
+}
+
+const AuthenticatedCandidatesRouteChildren: AuthenticatedCandidatesRouteChildren =
+  {
+    AuthenticatedCandidatesIdRoute: AuthenticatedCandidatesIdRoute,
+  }
+
+const AuthenticatedCandidatesRouteWithChildren =
+  AuthenticatedCandidatesRoute._addFileChildren(
+    AuthenticatedCandidatesRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
   AuthenticatedActivityLogRoute: typeof AuthenticatedActivityLogRoute
-  AuthenticatedCandidatesRoute: typeof AuthenticatedCandidatesRoute
+  AuthenticatedCandidatesRoute: typeof AuthenticatedCandidatesRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedImportRoute: typeof AuthenticatedImportRoute
   AuthenticatedPeFirmsRoute: typeof AuthenticatedPeFirmsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedWeeklyReportRoute: typeof AuthenticatedWeeklyReportRoute
@@ -217,8 +271,9 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedActivityLogRoute: AuthenticatedActivityLogRoute,
-  AuthenticatedCandidatesRoute: AuthenticatedCandidatesRoute,
+  AuthenticatedCandidatesRoute: AuthenticatedCandidatesRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedImportRoute: AuthenticatedImportRoute,
   AuthenticatedPeFirmsRoute: AuthenticatedPeFirmsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedWeeklyReportRoute: AuthenticatedWeeklyReportRoute,
@@ -236,13 +291,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
