@@ -63,6 +63,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]
+          shortlisted: boolean
           source: string | null
           updated_at: string
         }
@@ -86,6 +87,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
+          shortlisted?: boolean
           source?: string | null
           updated_at?: string
         }
@@ -109,6 +111,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
+          shortlisted?: boolean
           source?: string | null
           updated_at?: string
         }

@@ -1,71 +1,61 @@
-# Fix dashboard crash and protected server function 401s
+# Shortlisted vs Master list
 
-## What's happening
+Two views over the same candidate pool:
+- **Master list** — every candidate the recruiter has sourced. Internal working set.
+- **Shortlist** — the curated subset Sean (the client) sees and reviews.
 
-The red "Something went wrong — Cannot read properties of undefined (reading 'sourced')" screen is the root error boundary catching a render crash in `Dashboard.tsx`. The deeper cause is showing up in runtime errors as `Error: [object Response]` thrown from `getDashboardData` — the server function is returning `401 Unauthorized`, so `data` ends up undefined and the dashboard tries to read `data.peCoverage.sourced` anyway.
+## Decisions (defaults — say the word to change any)
 
-### Root cause of the 401
+1. **Model:** single boolean `shortlisted` on `candidates`. Simple, one global shortlist. Easy to extend to named shortlists later if needed.
+2. **Visibility:** shortlisting a candidate **auto-flips `client_visible = true`**; un-shortlisting flips it back to false. Sean's Candidates page = the Shortlist. The manual visibility toggle stays for edge cases but is rarely needed.
+3. **UI:** **Tabs at the top of `/candidates`** — `Master list` · `Shortlist (N)`. Same table, pre-applied filter. No new sidebar item (keeps nav clean).
+4. **Actions:** star/unstar per row, **bulk select + "Add to shortlist" / "Remove from shortlist"**, and a count badge in the tab. Reorder/rank and PDF export deferred to a later phase (called out below).
 
-`requireSupabaseAuth` (in `src/integrations/supabase/auth-middleware.ts`) requires every protected server function call to include an `Authorization: Bearer <supabase access_token>` header. But nothing in the app currently attaches that header to `createServerFn` requests:
+## What changes
 
-- `src/router.tsx` does not configure a request hook.
-- `src/start.ts` only adds an error-handling middleware.
-- `useServerFn(getDashboardData)` is called as `fn()` with no headers.
+### Database
+- Add `shortlisted boolean not null default false` to `candidates`.
+- Index on `shortlisted` for fast filtering.
+- Trigger: when `shortlisted` flips true → set `client_visible = true`; when flipped false → set `client_visible = false`. Also writes an `activity_log` entry (`shortlist_added` / `shortlist_removed`).
+- RLS unchanged — clients still gated on `client_visible`.
 
-Result: every protected server function (`getDashboardData`, `listCandidates`, `getCandidate`, `createCandidate`, `updateCandidate`, `deleteCandidate`, `importCandidates`, `importPeFirms`) 401s for any signed-in user. Dashboard, Candidates list, Candidate detail, Add candidate, and CSV import are all broken end-to-end — the dashboard just happens to be the most visible.
+### Server functions (`src/lib/candidates.functions.ts`)
+- Extend `listCandidates` filter schema with `shortlisted: "yes" | "no" | "all"`.
+- New `setShortlist({ ids: string[], shortlisted: boolean })` for bulk toggling.
+- `candidateInput` schema gets `shortlisted` (recruiter-only writeable).
 
-### Secondary cause of the visible crash
+### UI
+- **`/candidates` page**
+  - `Tabs` at top: `Master list` | `Shortlist (N)`. Selected tab drives the `shortlisted` filter; count comes from the query.
+  - Table gets a leading checkbox column (recruiter only) for multi-select.
+  - When ≥1 row selected, a sticky action bar appears: `Add to shortlist` / `Remove from shortlist` / `Clear`.
+  - New per-row star button (☆/★) next to the visibility eye — one click toggle.
+  - The existing visibility eye stays but is de-emphasized (most users will just star).
+- **Candidate detail page** — add a "Shortlisted" toggle near the visibility toggle, with a hint: "Shortlisted candidates are visible to the client."
+- **Client view (Sean)** — the Candidates page already filters by `client_visible`. No tabs shown; he just sees the shortlist. Optional small header text: "Shortlist · N candidates".
+- **Dashboard** — add a "Shortlisted" stat tile next to existing counts.
 
-In `Dashboard.tsx` the `StatCardsRow` block renders:
+### CSV import
+- Add optional `shortlisted` column to candidate CSV schema (yes/no/true/false). Defaults to false. If true on import, trigger auto-sets `client_visible`.
 
-```tsx
-role === "recruiter" && data ? (
-  <>{data.peCoverage.sourced} ... </>
-) : ...
-```
+## Out of scope (call out, don't build now)
+- Multiple named shortlists (e.g. "Round 1", "Round 2") — would need a `shortlists` join table. Easy migration later.
+- Manual reordering/ranking within the shortlist.
+- PDF export of the shortlist — natural fit with the planned Weekly Report.
 
-If `data` exists but `peCoverage` is somehow missing (or any future partial response), this still throws. We should be defensive here too so a server fn failure surfaces a friendly empty state rather than the global error boundary.
+## Technical notes
+- Trigger runs `SECURITY DEFINER` with `SET search_path = public` (matches existing triggers).
+- `setShortlist` uses a single `update ... where id = any($1)` — one round-trip; trigger handles per-row side effects.
+- Tab count uses a lightweight `select count` server fn (or derive from already-fetched data when filter is `all`) to avoid a second full list query.
+- Bulk action invalidates `["candidates"]` query key on success; toast shows `N added to shortlist`.
 
-## Plan
-
-### 1. Attach the Supabase access token to all server function calls
-
-Add a small client-side request interceptor that, before any `createServerFn` HTTP call, reads the current Supabase session and adds `Authorization: Bearer <access_token>`.
-
-The cleanest place to do this in TanStack Start is via `setHeaders` in a `clientMiddleware` registered in `src/start.ts`:
-
-```text
-src/start.ts
-  - import { createMiddleware } from "@tanstack/react-start"
-  - add an authMiddleware (type: 'function').client(...) that:
-      * calls supabase.auth.getSession()
-      * if a session exists, calls setHeaders({ Authorization: `Bearer ${access_token}` })
-      * then calls next()
-  - register it on createStart via requestMiddleware (server side stays as-is) and a new clientMiddleware list
-```
-
-If TanStack Start's middleware API in this version doesn't expose a global client middleware list, fall back to wrapping `useServerFn` in a small helper (e.g. `useAuthedServerFn`) that injects the header per call, and replace the existing `useServerFn(...)` usages.
-
-After this change, all `requireSupabaseAuth`-protected calls succeed for signed-in users with a valid session.
-
-### 2. Make the Dashboard defensive
-
-Update `src/components/dashboard/Dashboard.tsx` so that:
-
-- `StatCardsRow` uses optional chaining and a fallback: `data?.peCoverage?.sourced ?? 0`, `data?.peCoverage?.total ?? TOTAL_PE_UNIVERSE`.
-- If `data` is undefined and not loading, render a small "Couldn't load coverage" empty state inside the PE coverage card instead of throwing.
-- Same pattern for `funnel`, `geography`, `irFunctions` (already mostly using `?? []` — verify and tighten).
-
-Also add an `errorComponent` to `src/routes/_authenticated/dashboard.tsx` so a future server failure renders inline (with a Retry button that calls `router.invalidate()` + `reset()`) rather than blowing up to the root boundary.
-
-### 3. Verify
-
-- Sign in as a recruiter, load `/dashboard` — no error overlay, real numbers render.
-- Network tab: `/_serverFn/...getDashboardData` returns `200`, request includes `Authorization: Bearer ...`.
-- Load `/candidates` — list loads (was also 401 before).
-- Open `/candidates/$id`, edit a stage — succeeds, activity log entry appears.
-- `/import` → upload a small CSV → import succeeds.
-
-## Out of scope
-
-- No schema changes, no UI redesign, no new features. Pure bugfix.
+## Files touched (estimate)
+- migration: 1 new
+- `src/lib/candidates.functions.ts` — add field + bulk fn
+- `src/lib/csv-schemas.ts` — add `shortlisted` to candidate row
+- `src/routes/_authenticated/candidates.tsx` — tabs, selection state
+- `src/components/candidates/CandidatesTable.tsx` — checkbox column, star button
+- `src/components/candidates/CandidateFilters.tsx` — (no change; tabs handle it)
+- `src/components/candidates/BulkActionBar.tsx` — new
+- `src/components/candidates/CandidateForm.tsx` + detail page — shortlist toggle
+- `src/components/dashboard/Dashboard.tsx` — stat tile
