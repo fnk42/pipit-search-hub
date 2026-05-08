@@ -82,6 +82,7 @@ const candidateInput = z.object({
   next_action_date: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().optional()),
   last_contact_date: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().optional()),
   client_visible: z.boolean().default(false),
+  shortlisted: z.boolean().default(false),
 });
 
 export const createCandidate = createServerFn({ method: "POST" })
