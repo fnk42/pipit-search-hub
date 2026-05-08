@@ -113,7 +113,12 @@ function PipelineFunnel({ data, loading }: { data?: DashboardData; loading: bool
         {funnel.map((f) => {
           const pct = (f.count / max) * 100;
           return (
-            <div key={f.stage} className="grid grid-cols-[140px_1fr_36px] sm:grid-cols-[180px_1fr_48px] items-center gap-3">
+            <Link
+              key={f.stage}
+              to="/candidates"
+              search={{ stage: f.stage }}
+              className="grid grid-cols-[140px_1fr_36px] sm:grid-cols-[180px_1fr_48px] items-center gap-3 rounded-sm hover:bg-muted/40 px-1 -mx-1 py-0.5 transition-colors"
+            >
               <span className="text-xs sm:text-sm text-muted-foreground truncate">{f.stage}</span>
               <div className="h-7 bg-secondary/60 rounded-sm overflow-hidden">
                 <div
@@ -122,7 +127,7 @@ function PipelineFunnel({ data, loading }: { data?: DashboardData; loading: bool
                 />
               </div>
               <span className="text-sm font-semibold text-primary tabular-nums text-right">{f.count}</span>
-            </div>
+            </Link>
           );
         })}
       </div>
