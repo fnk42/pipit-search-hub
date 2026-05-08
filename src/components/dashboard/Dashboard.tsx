@@ -56,12 +56,16 @@ function EngagementSummary({ data, loading }: { data?: DashboardData; loading: b
       <p className="text-[11px] uppercase tracking-[0.2em] text-primary-foreground/60 mb-5">
         Engagement summary
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-10">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-10">
         <SummaryStat label="Search initiated" value={loading ? "…" : initiated} />
         <SummaryStat label="Days active" value={loading ? "…" : String(data?.daysActive ?? 0)} />
         <SummaryStat
           label="Candidates in pipeline"
           value={loading ? "…" : String(data?.candidatesInPipeline ?? 0)}
+        />
+        <SummaryStat
+          label="Shortlisted"
+          value={loading ? "…" : String(data?.shortlistedCount ?? 0)}
         />
       </div>
     </Card>

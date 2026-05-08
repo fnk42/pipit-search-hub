@@ -46,6 +46,7 @@ export const candidateRowSchema = z.object({
   linkedin_url: optStr,
   notes: optStr,
   client_visible: optBool,
+  shortlisted: optBool,
 });
 export type CandidateRow = z.infer<typeof candidateRowSchema>;
 
@@ -80,6 +81,7 @@ export const CANDIDATE_FIELDS = [
   { key: "linkedin_url", label: "LinkedIn URL" },
   { key: "notes", label: "Notes" },
   { key: "client_visible", label: "Client visible" },
+  { key: "shortlisted", label: "Shortlisted" },
 ] as const;
 
 export const PE_FIELDS = [

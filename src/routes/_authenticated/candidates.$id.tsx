@@ -150,6 +150,7 @@ function CandidateDetailPage() {
                       next_action_date: c.next_action_date ?? "",
                       last_contact_date: c.last_contact_date ?? "",
                       client_visible: c.client_visible,
+                      shortlisted: c.shortlisted ?? false,
                     }}
                     submitLabel="Save changes"
                     onSubmit={async (v) => {

@@ -9,7 +9,8 @@ const filtersSchema = z.object({
   location: z.enum(LOCATION_BUCKETS).optional(),
   irFunction: z.enum(IR_FUNCTIONS).optional(),
   clientVisible: z.enum(["yes", "no", "all"]).default("all"),
-}).default({ clientVisible: "all" });
+  shortlisted: z.enum(["yes", "no", "all"]).default("all"),
+}).default({ clientVisible: "all", shortlisted: "all" });
 
 export const listCandidates = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -22,6 +23,8 @@ export const listCandidates = createServerFn({ method: "GET" })
     if (data.irFunction) q = q.contains("ir_functions", [data.irFunction]);
     if (data.clientVisible === "yes") q = q.eq("client_visible", true);
     if (data.clientVisible === "no") q = q.eq("client_visible", false);
+    if (data.shortlisted === "yes") q = q.eq("shortlisted", true);
+    if (data.shortlisted === "no") q = q.eq("shortlisted", false);
     if (data.search) {
       const s = data.search.replace(/[%_]/g, "");
       q = q.or(`name.ilike.%${s}%,current_firm.ilike.%${s}%,email.ilike.%${s}%`);
@@ -79,6 +82,7 @@ const candidateInput = z.object({
   next_action_date: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().optional()),
   last_contact_date: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().optional()),
   client_visible: z.boolean().default(false),
+  shortlisted: z.boolean().default(false),
 });
 
 export const createCandidate = createServerFn({ method: "POST" })
@@ -108,4 +112,18 @@ export const deleteCandidate = createServerFn({ method: "POST" })
     const { error } = await context.supabase.from("candidates").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+export const setShortlist = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ ids: z.array(z.string().uuid()).min(1).max(500), shortlisted: z.boolean() }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { error } = await context.supabase
+      .from("candidates")
+      .update({ shortlisted: data.shortlisted })
+      .in("id", data.ids);
+    if (error) throw new Error(error.message);
+    return { ok: true, count: data.ids.length };
   });

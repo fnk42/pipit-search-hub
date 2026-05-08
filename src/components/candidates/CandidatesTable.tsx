@@ -3,9 +3,10 @@ import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, EyeOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Eye, EyeOff, Star } from "lucide-react";
 import { StageBadge } from "./StageBadge";
-import { updateCandidate } from "@/lib/candidates.functions";
+import { updateCandidate, setShortlist } from "@/lib/candidates.functions";
 import { toast } from "sonner";
 
 type Candidate = {
@@ -18,15 +19,36 @@ type Candidate = {
   last_contact_date: string | null;
   next_action: string | null;
   client_visible: boolean;
+  shortlisted: boolean;
 };
 
-export function CandidatesTable({ rows, role }: { rows: Candidate[]; role: "recruiter" | "client" }) {
+export function CandidatesTable({
+  rows, role, selected, onToggleRow, onToggleAll,
+}: {
+  rows: Candidate[];
+  role: "recruiter" | "client";
+  selected?: Set<string>;
+  onToggleRow?: (id: string) => void;
+  onToggleAll?: () => void;
+}) {
   const qc = useQueryClient();
   const updateFn = useServerFn(updateCandidate);
+  const shortlistFn = useServerFn(setShortlist);
+  const isRecruiter = role === "recruiter";
+
   const toggleVis = useMutation({
     mutationFn: async (c: Candidate) =>
       updateFn({ data: { id: c.id, patch: { client_visible: !c.client_visible } } }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["candidates"] }); toast.success("Visibility updated"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const toggleStar = useMutation({
+    mutationFn: async (c: Candidate) =>
+      shortlistFn({ data: { ids: [c.id], shortlisted: !c.shortlisted } }),
+    onSuccess: (_r, c) => {
+      qc.invalidateQueries({ queryKey: ["candidates"] });
+      toast.success(c.shortlisted ? "Removed from shortlist" : "Added to shortlist");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -39,21 +61,26 @@ export function CandidatesTable({ rows, role }: { rows: Candidate[]; role: "recr
     );
   }
 
+  const allSelected = isRecruiter && selected && rows.length > 0 && selected.size === rows.length;
+
   return (
     <>
       {/* Mobile cards */}
       <div className="sm:hidden space-y-2">
         {rows.map((c) => (
-          <Link key={c.id} to="/candidates/$id" params={{ id: c.id }} className="block rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-soft)]">
+          <div key={c.id} className="rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-soft)]">
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="font-medium text-sm text-foreground truncate">{c.name}</div>
+              <Link to="/candidates/$id" params={{ id: c.id }} className="min-w-0 flex-1">
+                <div className="font-medium text-sm text-foreground truncate flex items-center gap-1.5">
+                  {c.shortlisted && <Star className="h-3.5 w-3.5 fill-accent text-accent shrink-0" />}
+                  {c.name}
+                </div>
                 <div className="text-xs text-muted-foreground truncate">{c.current_title}{c.current_firm ? ` · ${c.current_firm}` : ""}</div>
-              </div>
+              </Link>
               <StageBadge stage={c.pipeline_stage} />
             </div>
             {c.next_action && <div className="text-xs text-muted-foreground mt-2">Next: {c.next_action}</div>}
-          </Link>
+          </div>
         ))}
       </div>
 
@@ -62,18 +89,49 @@ export function CandidatesTable({ rows, role }: { rows: Candidate[]; role: "recr
         <Table>
           <TableHeader>
             <TableRow>
+              {isRecruiter && (
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={() => onToggleAll?.()}
+                    aria-label="Select all"
+                  />
+                </TableHead>
+              )}
+              {isRecruiter && <TableHead className="w-10"></TableHead>}
               <TableHead>Name</TableHead>
               <TableHead>Firm</TableHead>
               <TableHead>Stage</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Last contact</TableHead>
               <TableHead>Next action</TableHead>
-              {role === "recruiter" && <TableHead className="text-right">Visible</TableHead>}
+              {isRecruiter && <TableHead className="text-right">Visible</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map((c) => (
               <TableRow key={c.id} className="cursor-pointer">
+                {isRecruiter && (
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selected?.has(c.id) ?? false}
+                      onCheckedChange={() => onToggleRow?.(c.id)}
+                      aria-label={`Select ${c.name}`}
+                    />
+                  </TableCell>
+                )}
+                {isRecruiter && (
+                  <TableCell>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setPendingId(c.id); toggleStar.mutate(c, { onSettled: () => setPendingId(null) }); }}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted"
+                      aria-label={c.shortlisted ? "Remove from shortlist" : "Add to shortlist"}
+                      disabled={pendingId === c.id}
+                    >
+                      <Star className={`h-4 w-4 ${c.shortlisted ? "fill-accent text-accent" : "text-muted-foreground"}`} />
+                    </button>
+                  </TableCell>
+                )}
                 <TableCell className="font-medium">
                   <Link to="/candidates/$id" params={{ id: c.id }} className="hover:text-primary">
                     {c.name}
@@ -87,7 +145,7 @@ export function CandidatesTable({ rows, role }: { rows: Candidate[]; role: "recr
                 <TableCell className="text-sm text-muted-foreground">{c.location_bucket ?? "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{c.last_contact_date ?? "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground max-w-[18ch] truncate">{c.next_action ?? "—"}</TableCell>
-                {role === "recruiter" && (
+                {isRecruiter && (
                   <TableCell className="text-right">
                     <button
                       onClick={(e) => { e.stopPropagation(); setPendingId(c.id); toggleVis.mutate(c, { onSettled: () => setPendingId(null) }); }}
