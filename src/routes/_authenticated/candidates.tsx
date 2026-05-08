@@ -144,7 +144,7 @@ function CandidatesPage() {
         </Tabs>
       )}
 
-      <CandidateFilters value={filters} onChange={setFilters} role={isRecruiter ? "recruiter" : "client"} />
+      <CandidateFilters value={filters} onChange={handleFiltersChange} role={isRecruiter ? "recruiter" : "client"} />
 
       {isLoading ? (
         <div className="space-y-2">
