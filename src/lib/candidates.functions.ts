@@ -9,7 +9,8 @@ const filtersSchema = z.object({
   location: z.enum(LOCATION_BUCKETS).optional(),
   irFunction: z.enum(IR_FUNCTIONS).optional(),
   clientVisible: z.enum(["yes", "no", "all"]).default("all"),
-}).default({ clientVisible: "all" });
+  shortlisted: z.enum(["yes", "no", "all"]).default("all"),
+}).default({ clientVisible: "all", shortlisted: "all" });
 
 export const listCandidates = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
