@@ -30,10 +30,42 @@ type Tab = "master" | "shortlist";
 function CandidatesPage() {
   const { role } = useAuth();
   const isRecruiter = role === "recruiter";
+  const navigate = useNavigate({ from: Route.fullPath });
+  const search = Route.useSearch();
   const [tab, setTab] = useState<Tab>("master");
-  const [filters, setFilters] = useState<Filters>(defaultFilters);
+  const [filters, setFilters] = useState<Filters>(() => ({
+    ...defaultFilters,
+    search: search.search ?? "",
+    stage: search.stage ?? "",
+    location: search.location ?? "",
+    irFunction: search.irFunction ?? "",
+  }));
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const qc = useQueryClient();
+
+  // Sync URL → filters when search params change (e.g. from dashboard drill-down)
+  useEffect(() => {
+    setFilters((f) => ({
+      ...f,
+      search: search.search ?? "",
+      stage: search.stage ?? "",
+      location: search.location ?? "",
+      irFunction: search.irFunction ?? "",
+    }));
+  }, [search.search, search.stage, search.location, search.irFunction]);
+
+  const handleFiltersChange = (next: Filters) => {
+    setFilters(next);
+    navigate({
+      search: {
+        search: next.search || undefined,
+        stage: next.stage || undefined,
+        location: next.location || undefined,
+        irFunction: next.irFunction || undefined,
+      },
+      replace: true,
+    });
+  };
 
   const list = useServerFn(listCandidates);
   const shortlistFn = useServerFn(setShortlist);
