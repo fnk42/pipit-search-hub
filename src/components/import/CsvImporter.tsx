@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { UploadCloud, FileSpreadsheet, X, AlertCircle, CheckCircle2 } from "lucide-react";
-import { CANDIDATE_FIELDS, PE_FIELDS, candidateRowSchema, peFirmRowSchema } from "@/lib/csv-schemas";
+import { CANDIDATE_FIELDS, PE_FIELDS, CANDIDATE_HEADER_ALIASES, PE_HEADER_ALIASES, candidateRowSchema, peFirmRowSchema } from "@/lib/csv-schemas";
 import { importCandidates, importPeFirms } from "@/lib/import.functions";
 import { toast } from "sonner";
 
@@ -22,6 +22,7 @@ export function CsvImporter({ kind }: { kind: Kind }) {
   const [mapping, setMapping] = useState<Record<string, string>>({});
 
   const fields = kind === "candidates" ? CANDIDATE_FIELDS : PE_FIELDS;
+  const aliases = kind === "candidates" ? CANDIDATE_HEADER_ALIASES : PE_HEADER_ALIASES;
   const schema = kind === "candidates" ? candidateRowSchema : peFirmRowSchema;
   const importCands = useServerFn(importCandidates);
   const importPe = useServerFn(importPeFirms);
@@ -37,18 +38,27 @@ export function CsvImporter({ kind }: { kind: Kind }) {
         const hs = res.meta.fields ?? [];
         setHeaders(hs);
         setRows(res.data);
-        // auto-map
+        // auto-map: alias table first, then loose fuzzy fallback
         const auto: Record<string, string> = {};
+        const normalize = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
         hs.forEach((h) => {
-          const norm = h.toLowerCase().replace(/[^a-z]/g, "");
-          const match = fields.find((f) => f.key.replace(/_/g, "").toLowerCase() === norm
-            || f.label.toLowerCase().replace(/[^a-z]/g, "").includes(norm));
+          const nh = normalize(h);
+          // 1) exact alias hit
+          const aliasKey = Object.entries(aliases).find(([, list]) => list.some((a) => normalize(a) === nh))?.[0];
+          if (aliasKey) { auto[h] = aliasKey; return; }
+          // 2) fuzzy: header normalized matches field key or label (either direction)
+          const compact = nh.replace(/\s/g, "");
+          const match = fields.find((f) => {
+            const k = f.key.replace(/_/g, "");
+            const l = f.label.toLowerCase().replace(/[^a-z0-9]/g, "");
+            return k === compact || l === compact || k.includes(compact) || compact.includes(k);
+          });
           if (match) auto[h] = match.key;
         });
         setMapping(auto);
       },
     });
-  }, [fields]);
+  }, [fields, aliases]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop, multiple: false, accept: { "text/csv": [".csv"] },

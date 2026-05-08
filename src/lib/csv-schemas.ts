@@ -68,6 +68,32 @@ export const peFirmRowSchema = z.object({
 });
 export type PeFirmRow = z.infer<typeof peFirmRowSchema>;
 
+export const CANDIDATE_HEADER_ALIASES: Record<string, string[]> = {
+  name: ["name", "full name", "candidate", "candidate name"],
+  email: ["email", "email address", "e-mail", "mail"],
+  phone: ["phone", "phone number", "mobile", "cell", "telephone"],
+  current_firm: ["firm", "firm name", "company", "company name", "employer", "organization", "organisation", "current company", "current employer", "current firm"],
+  current_title: ["title", "job title", "position", "role", "current title", "current position", "current role"],
+  pipeline_stage: ["stage", "pipeline", "pipeline stage", "status"],
+  location_bucket: ["location", "region", "market", "geo"],
+  ir_functions: ["function", "functions", "ir function", "ir functions"],
+  source: ["source", "lead source", "sourced from", "referrer"],
+  linkedin_url: ["linkedin", "linkedin url", "linkedin profile", "profile url"],
+  notes: ["notes", "comments", "remarks"],
+  client_visible: ["client visible", "visible", "show client"],
+  shortlisted: ["shortlisted", "shortlist", "starred"],
+};
+
+export const PE_HEADER_ALIASES: Record<string, string[]> = {
+  name: ["name", "firm", "firm name", "fund", "fund name"],
+  tier: ["tier"],
+  status: ["status"],
+  aum_usd: ["aum", "aum usd", "assets", "assets under management"],
+  hq_city: ["city", "hq city", "headquarters city"],
+  hq_state: ["state", "hq state", "headquarters state"],
+  notes: ["notes", "comments", "remarks"],
+};
+
 export const CANDIDATE_FIELDS = [
   { key: "name", label: "Name", required: true },
   { key: "email", label: "Email" },
