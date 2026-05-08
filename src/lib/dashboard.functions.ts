@@ -8,6 +8,7 @@ export type DashboardData = {
   searchInitiated: string | null;
   daysActive: number;
   candidatesInPipeline: number;
+  shortlistedCount: number;
   funnel: { stage: string; count: number }[];
   geography: { bucket: string; count: number }[];
   irFunctions: { name: string; count: number }[];
@@ -42,7 +43,7 @@ export const getDashboardData = createServerFn({ method: "GET" })
     // Candidates: RLS already filters client to client_visible only
     const { data: candidates } = await supabase
       .from("candidates")
-      .select("id, created_at, pipeline_stage, location_bucket, ir_functions");
+      .select("id, created_at, pipeline_stage, location_bucket, ir_functions, shortlisted");
 
     const list = candidates ?? [];
 
@@ -56,6 +57,7 @@ export const getDashboardData = createServerFn({ method: "GET" })
       : 0;
 
     const candidatesInPipeline = list.filter((c) => !ACTIVE_EXCLUDE.has(c.pipeline_stage as string)).length;
+    const shortlistedCount = list.filter((c) => (c as { shortlisted?: boolean }).shortlisted).length;
 
     const funnel = STAGE_ORDER.map((stage) => ({
       stage,
@@ -118,6 +120,7 @@ export const getDashboardData = createServerFn({ method: "GET" })
       searchInitiated,
       daysActive,
       candidatesInPipeline,
+      shortlistedCount,
       funnel,
       geography,
       irFunctions,
