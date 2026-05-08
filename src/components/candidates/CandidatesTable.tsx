@@ -20,6 +20,7 @@ type Candidate = {
   next_action: string | null;
   client_visible: boolean;
   shortlisted: boolean;
+  linkedin_url?: string | null;
 };
 
 export function CandidatesTable({
