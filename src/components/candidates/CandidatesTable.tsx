@@ -101,6 +101,7 @@ export function CandidatesTable({
               {isRecruiter && <TableHead className="w-10"></TableHead>}
               <TableHead>Name</TableHead>
               <TableHead>Firm</TableHead>
+              <TableHead>Title</TableHead>
               <TableHead>Stage</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Last contact</TableHead>
@@ -137,10 +138,8 @@ export function CandidatesTable({
                     {c.name}
                   </Link>
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  <div className="font-medium text-foreground">{c.current_firm ?? "—"}</div>
-                  <div className="text-xs">{c.current_title}</div>
-                </TableCell>
+                <TableCell className="text-sm text-foreground">{c.current_firm ?? "—"}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{c.current_title ?? "—"}</TableCell>
                 <TableCell><StageBadge stage={c.pipeline_stage} /></TableCell>
                 <TableCell className="text-sm text-muted-foreground">{c.location_bucket ?? "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{c.last_contact_date ?? "—"}</TableCell>
