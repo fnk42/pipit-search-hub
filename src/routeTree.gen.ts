@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedWeeklyReportRouteImport } from './routes/_authenticated/weekly-report'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPeFirmsRouteImport } from './routes/_authenticated/pe-firms'
+import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCandidatesRouteImport } from './routes/_authenticated/candidates'
 import { Route as AuthenticatedActivityLogRouteImport } from './routes/_authenticated/activity-log'
@@ -50,6 +51,11 @@ const AuthenticatedPeFirmsRoute = AuthenticatedPeFirmsRouteImport.update({
   path: '/pe-firms',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedImportRoute = AuthenticatedImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -79,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/activity-log': typeof AuthenticatedActivityLogRoute
   '/candidates': typeof AuthenticatedCandidatesRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/import': typeof AuthenticatedImportRoute
   '/pe-firms': typeof AuthenticatedPeFirmsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/weekly-report': typeof AuthenticatedWeeklyReportRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/activity-log': typeof AuthenticatedActivityLogRoute
   '/candidates': typeof AuthenticatedCandidatesRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/import': typeof AuthenticatedImportRoute
   '/pe-firms': typeof AuthenticatedPeFirmsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/weekly-report': typeof AuthenticatedWeeklyReportRoute
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/_authenticated/activity-log': typeof AuthenticatedActivityLogRoute
   '/_authenticated/candidates': typeof AuthenticatedCandidatesRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/import': typeof AuthenticatedImportRoute
   '/_authenticated/pe-firms': typeof AuthenticatedPeFirmsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/weekly-report': typeof AuthenticatedWeeklyReportRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/activity-log'
     | '/candidates'
     | '/dashboard'
+    | '/import'
     | '/pe-firms'
     | '/settings'
     | '/weekly-report'
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/activity-log'
     | '/candidates'
     | '/dashboard'
+    | '/import'
     | '/pe-firms'
     | '/settings'
     | '/weekly-report'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/_authenticated/activity-log'
     | '/_authenticated/candidates'
     | '/_authenticated/dashboard'
+    | '/_authenticated/import'
     | '/_authenticated/pe-firms'
     | '/_authenticated/settings'
     | '/_authenticated/weekly-report'
@@ -195,6 +207,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPeFirmsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/import': {
+      id: '/_authenticated/import'
+      path: '/import'
+      fullPath: '/import'
+      preLoaderRoute: typeof AuthenticatedImportRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -244,6 +263,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedActivityLogRoute: typeof AuthenticatedActivityLogRoute
   AuthenticatedCandidatesRoute: typeof AuthenticatedCandidatesRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedImportRoute: typeof AuthenticatedImportRoute
   AuthenticatedPeFirmsRoute: typeof AuthenticatedPeFirmsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedWeeklyReportRoute: typeof AuthenticatedWeeklyReportRoute
@@ -253,6 +273,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedActivityLogRoute: AuthenticatedActivityLogRoute,
   AuthenticatedCandidatesRoute: AuthenticatedCandidatesRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedImportRoute: AuthenticatedImportRoute,
   AuthenticatedPeFirmsRoute: AuthenticatedPeFirmsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedWeeklyReportRoute: AuthenticatedWeeklyReportRoute,

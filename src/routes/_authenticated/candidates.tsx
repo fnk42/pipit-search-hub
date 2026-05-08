@@ -8,7 +8,7 @@ import { CandidatesTable } from "@/components/candidates/CandidatesTable";
 import { CandidateFilters, defaultFilters, type Filters } from "@/components/candidates/CandidateFilters";
 import { AddCandidateDialog } from "@/components/candidates/AddCandidateDialog";
 import { Button } from "@/components/ui/button";
-import { Upload, Skeleton as _ } from "lucide-react";
+import { Upload } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/_authenticated/candidates")({
