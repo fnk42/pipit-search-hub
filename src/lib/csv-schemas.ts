@@ -46,6 +46,7 @@ export const candidateRowSchema = z.object({
   linkedin_url: optStr,
   notes: optStr,
   client_visible: optBool,
+  shortlisted: optBool,
 });
 export type CandidateRow = z.infer<typeof candidateRowSchema>;
 
