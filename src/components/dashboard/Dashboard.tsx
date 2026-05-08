@@ -187,20 +187,20 @@ function StatCardsRow({
         </p>
         {loading ? (
           <Skeleton className="h-24 w-full" />
-        ) : role === "recruiter" && data ? (
+        ) : role === "recruiter" && data?.peCoverage ? (
           <>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-semibold text-primary tabular-nums">{data.peCoverage.sourced}</span>
-              <span className="text-sm text-muted-foreground">/ {data.peCoverage.total} firms</span>
+              <span className="text-4xl font-semibold text-primary tabular-nums">{data.peCoverage.sourced ?? 0}</span>
+              <span className="text-sm text-muted-foreground">/ {data.peCoverage.total ?? 0} firms</span>
             </div>
             <div className="mt-5 h-2 rounded-full bg-secondary overflow-hidden">
               <div
                 className="h-full rounded-full bg-accent transition-all"
-                style={{ width: `${Math.min(100, (data.peCoverage.sourced / data.peCoverage.total) * 100)}%` }}
+                style={{ width: `${Math.min(100, ((data.peCoverage.sourced ?? 0) / Math.max(1, data.peCoverage.total ?? 1)) * 100)}%` }}
               />
             </div>
             <p className="mt-3 text-xs text-muted-foreground">
-              {Math.round((data.peCoverage.sourced / data.peCoverage.total) * 100)}% of target firms engaged
+              {Math.round(((data.peCoverage.sourced ?? 0) / Math.max(1, data.peCoverage.total ?? 1)) * 100)}% of target firms engaged
             </p>
           </>
         ) : (
