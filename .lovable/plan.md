@@ -1,107 +1,71 @@
-# Phase 2 Plan — Candidates CRUD + CSV Import
+# Fix dashboard crash and protected server function 401s
 
-Build the Candidates list, dedicated detail page, single-row create/edit/delete, and CSV import for both candidates and PE firms. Single-row edits only — no multi-select. Activity log continues to capture stage changes via the existing trigger.
+## What's happening
 
-## 1. Candidates list (`/candidates`)
+The red "Something went wrong — Cannot read properties of undefined (reading 'sourced')" screen is the root error boundary catching a render crash in `Dashboard.tsx`. The deeper cause is showing up in runtime errors as `Error: [object Response]` thrown from `getDashboardData` — the server function is returning `401 Unauthorized`, so `data` ends up undefined and the dashboard tries to read `data.peCoverage.sourced` anyway.
 
-Replace the current "Coming soon" stub with a real recruiter workspace.
+### Root cause of the 401
 
-**Layout**
-- Page header: "Candidates" title, total count pill, primary "Add candidate" button (gold), secondary "Import CSV" button.
-- Toolbar row (sticky on scroll): search input (name / firm / email), filter dropdowns for Pipeline stage, Location, IR function, Client visible (Yes/No/All). "Clear filters" link when any active.
-- Table (shadcn `Table`):
-  - Columns: Name (link), Current firm, Title, Stage (colored badge), Location, Last contact, Next action, Client visible (eye icon toggle).
-  - Row click → navigate to `/candidates/$id`.
-  - Stage badge uses navy/gold/muted variants per stage group (active vs terminal).
-  - Empty state: navy illustration block + "No candidates match these filters" + "Clear filters" / "Add candidate".
-- Mobile (≤640px): collapses to a card list — name + firm + stage badge + next action.
+`requireSupabaseAuth` (in `src/integrations/supabase/auth-middleware.ts`) requires every protected server function call to include an `Authorization: Bearer <supabase access_token>` header. But nothing in the app currently attaches that header to `createServerFn` requests:
 
-**Client view**
-- Same route, but the table is read-only: no Add/Import/edit controls, only `client_visible=true` candidates (RLS already enforces this), and the "Client visible" column is hidden.
+- `src/router.tsx` does not configure a request hook.
+- `src/start.ts` only adds an error-handling middleware.
+- `useServerFn(getDashboardData)` is called as `fn()` with no headers.
 
-## 2. Candidate detail (`/candidates/$id`)
+Result: every protected server function (`getDashboardData`, `listCandidates`, `getCandidate`, `createCandidate`, `updateCandidate`, `deleteCandidate`, `importCandidates`, `importPeFirms`) 401s for any signed-in user. Dashboard, Candidates list, Candidate detail, Add candidate, and CSV import are all broken end-to-end — the dashboard just happens to be the most visible.
 
-Dedicated full page, two-column on desktop, stacked on mobile.
+### Secondary cause of the visible crash
 
-**Left column (8/12)**
-- Header: name, current title @ current firm, LinkedIn icon link, edit/delete icon buttons (recruiters only).
-- Stage selector: large dropdown that writes immediately and toasts "Stage moved to X" — this is the trigger that writes to `activity_log`.
-- Tabs: **Overview** (all editable fields in a form) / **Activity** (timeline of `activity_log` rows for this candidate, recruiter-only) / **Notes** (markdown textarea, autosave on blur).
-- Overview form fields: name, email, phone, current_firm, current_title, location_bucket, ir_functions (multi-select chips), source, last_contact_date, next_action, next_action_date, linkedin_url, client_visible toggle.
-- Save bar appears when form is dirty: "Save changes" (gold) / "Discard". Validation via Zod.
+In `Dashboard.tsx` the `StatCardsRow` block renders:
 
-**Right column (4/12)**
-- "Quick facts" card: stage, location, IR functions chips, client visible status.
-- "Engagement" card: created date, last updated, days in current stage.
-- Delete confirmation uses shadcn `AlertDialog`.
+```tsx
+role === "recruiter" && data ? (
+  <>{data.peCoverage.sourced} ... </>
+) : ...
+```
 
-**Client view of detail page**
-- Read-only. No stage selector, no edit buttons, no Activity tab, notes hidden. Shows only: name, firm, title, location, IR functions, stage. If candidate is not `client_visible`, RLS returns nothing → render NotFound.
+If `data` exists but `peCoverage` is somehow missing (or any future partial response), this still throws. We should be defensive here too so a server fn failure surfaces a friendly empty state rather than the global error boundary.
 
-## 3. Add candidate
+## Plan
 
-- "Add candidate" button opens a shadcn `Dialog` with the same Zod-validated form (minimal required fields: name + stage).
-- On success → toast + navigate to the new `/candidates/$id`.
+### 1. Attach the Supabase access token to all server function calls
 
-## 4. CSV Import (`/import`)
+Add a small client-side request interceptor that, before any `createServerFn` HTTP call, reads the current Supabase session and adds `Authorization: Bearer <access_token>`.
 
-New route under `_authenticated`, recruiter-only (sidebar item visible only to recruiters; client gets a 403 redirect).
+The cleanest place to do this in TanStack Start is via `setHeaders` in a `clientMiddleware` registered in `src/start.ts`:
 
-**Two tabs: Candidates / PE firms.**
+```text
+src/start.ts
+  - import { createMiddleware } from "@tanstack/react-start"
+  - add an authMiddleware (type: 'function').client(...) that:
+      * calls supabase.auth.getSession()
+      * if a session exists, calls setHeaders({ Authorization: `Bearer ${access_token}` })
+      * then calls next()
+  - register it on createStart via requestMiddleware (server side stays as-is) and a new clientMiddleware list
+```
 
-Flow per tab:
-1. **Upload** — drag-and-drop or file picker, `.csv` only, ≤2MB. Parsed in-browser with `papaparse`.
-2. **Map columns** — table showing each CSV header with a dropdown to map to a target field (or "Skip"). Auto-suggests by header name match. Required target fields shown with a red asterisk; rows with missing required fields are flagged.
-3. **Preview & validate** — first 20 rows rendered with per-cell validation errors (Zod). Counts: "X valid · Y errors". Errors block import.
-4. **Import** — server function inserts in batches of 100 inside a single Supabase call per batch. Returns `{inserted, skipped, errors}`. Toast + link to the relevant list.
+If TanStack Start's middleware API in this version doesn't expose a global client middleware list, fall back to wrapping `useServerFn` in a small helper (e.g. `useAuthedServerFn`) that injects the header per call, and replace the existing `useServerFn(...)` usages.
 
-**Candidate target fields**: name (req), email, current_firm, current_title, pipeline_stage (defaults to Sourced), location_bucket, ir_functions (comma-separated), source, linkedin_url, notes, client_visible (defaults false).
-**PE firm target fields**: name (req), tier, status (defaults to Target), aum_usd, hq_city, hq_state, notes.
+After this change, all `requireSupabaseAuth`-protected calls succeed for signed-in users with a valid session.
 
-Enums are validated against the Postgres enum values; unknown values surface as cell errors with a "did you mean…" hint.
+### 2. Make the Dashboard defensive
 
-## 5. Server functions (`src/lib/candidates.functions.ts`, `src/lib/import.functions.ts`)
+Update `src/components/dashboard/Dashboard.tsx` so that:
 
-All protected by `requireSupabaseAuth` so RLS enforces role boundaries automatically.
+- `StatCardsRow` uses optional chaining and a fallback: `data?.peCoverage?.sourced ?? 0`, `data?.peCoverage?.total ?? TOTAL_PE_UNIVERSE`.
+- If `data` is undefined and not loading, render a small "Couldn't load coverage" empty state inside the PE coverage card instead of throwing.
+- Same pattern for `funnel`, `geography`, `irFunctions` (already mostly using `?? []` — verify and tighten).
 
-- `listCandidates({ search, stage, location, irFunction, clientVisible })` — returns rows.
-- `getCandidate(id)` — single row + last 20 activity_log entries (recruiter only for activity).
-- `createCandidate(input)` / `updateCandidate(id, patch)` / `deleteCandidate(id)`.
-- `importCandidates(rows)` / `importPeFirms(rows)` — bulk insert, returns counts and errors.
+Also add an `errorComponent` to `src/routes/_authenticated/dashboard.tsx` so a future server failure renders inline (with a Retry button that calls `router.invalidate()` + `reset()`) rather than blowing up to the root boundary.
 
-Stage changes flow through the existing `log_pipeline_change` trigger; no extra logging code needed.
+### 3. Verify
 
-## 6. Sidebar + routing updates
+- Sign in as a recruiter, load `/dashboard` — no error overlay, real numbers render.
+- Network tab: `/_serverFn/...getDashboardData` returns `200`, request includes `Authorization: Bearer ...`.
+- Load `/candidates` — list loads (was also 401 before).
+- Open `/candidates/$id`, edit a stage — succeeds, activity log entry appears.
+- `/import` → upload a small CSV → import succeeds.
 
-- Wire the existing **Candidates** sidebar item to `/candidates`.
-- Add a new **Import** sidebar item (recruiter only), icon `Upload`.
-- Remove "Coming soon" from `candidates.tsx`.
-- New files:
-  - `src/routes/_authenticated/candidates.index.tsx` (list)
-  - `src/routes/_authenticated/candidates.$id.tsx` (detail)
-  - `src/routes/_authenticated/import.tsx` (CSV)
-  - `src/components/candidates/CandidatesTable.tsx`
-  - `src/components/candidates/CandidateFilters.tsx`
-  - `src/components/candidates/CandidateForm.tsx`
-  - `src/components/candidates/AddCandidateDialog.tsx`
-  - `src/components/candidates/ActivityTimeline.tsx`
-  - `src/components/candidates/StageBadge.tsx`
-  - `src/components/import/CsvImporter.tsx` (shared UI)
-  - `src/lib/candidates.functions.ts`
-  - `src/lib/import.functions.ts`
-  - `src/lib/csv-schemas.ts` (Zod schemas + enum maps)
+## Out of scope
 
-## 7. Dependencies
-
-Add: `papaparse`, `@types/papaparse`, `react-dropzone`. (Zod, shadcn Dialog/Table/Tabs/AlertDialog/Select/Toast all already present.)
-
-## 8. Acceptance
-
-- Recruiter: can list, filter, search, open detail, edit any field, change stage (logs activity), toggle client_visible, delete with confirm, add via dialog, and import a CSV with column mapping + preview.
-- Client (Sean): sees a read-only table of only `client_visible=true` candidates with limited columns, can open a sanitized detail page, no Add/Import/Edit controls anywhere, no Import sidebar item.
-- 375px viewport: list collapses to cards, detail stacks to single column, CSV mapper is horizontally scrollable.
-- Stage changes visible in dashboard's Recent Activity feed.
-
-## Out of scope (still deferred)
-
-PE firm full CRUD UI (only CSV import for now), weekly report generation, settings UI, profile editing, bulk multi-select edits.
+- No schema changes, no UI redesign, no new features. Pure bugfix.
