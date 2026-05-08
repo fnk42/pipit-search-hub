@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Star } from "lucide-react";
+import { Eye, EyeOff, Star, ExternalLink, FileText } from "lucide-react";
 import { StageBadge } from "./StageBadge";
 import { updateCandidate, setShortlist } from "@/lib/candidates.functions";
 import { toast } from "sonner";
