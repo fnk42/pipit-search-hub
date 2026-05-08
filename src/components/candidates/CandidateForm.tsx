@@ -20,14 +20,14 @@ const schema = z.object({
   current_title: z.string().max(200).optional(),
   pipeline_stage: z.enum(PIPELINE_STAGES),
   location_bucket: z.enum([...LOCATION_BUCKETS, "" as const]).optional(),
-  ir_functions: z.array(z.enum(IR_FUNCTIONS)).default([]),
+  ir_functions: z.array(z.enum(IR_FUNCTIONS)),
   source: z.string().max(200).optional(),
   linkedin_url: z.string().max(500).optional(),
   notes: z.string().max(10000).optional(),
   next_action: z.string().max(500).optional(),
   next_action_date: z.string().optional(),
   last_contact_date: z.string().optional(),
-  client_visible: z.boolean().default(false),
+  client_visible: z.boolean(),
 });
 
 export type CandidateFormValues = z.infer<typeof schema>;
