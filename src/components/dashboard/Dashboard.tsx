@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { getDashboardData, type DashboardData } from "@/lib/dashboard.functions";
 import { Card } from "@/components/ui/card";
