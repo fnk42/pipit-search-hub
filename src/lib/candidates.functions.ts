@@ -43,7 +43,8 @@ export const getCandidate = createServerFn({ method: "GET" })
     const { data: roleRow } = await supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle();
     const role = (roleRow?.role as "recruiter" | "client") ?? "client";
 
-    let activity: { id: string; created_at: string; action: string; payload: unknown; user_name: string | null }[] = [];
+    type ActivityItem = { id: string; created_at: string; action: string; payload: Record<string, string | number | boolean | null>; user_name: string | null };
+    let activity: ActivityItem[] = [];
     if (role === "recruiter") {
       const { data: log } = await supabase
         .from("activity_log").select("id, created_at, action, payload, user_id")
@@ -54,7 +55,8 @@ export const getCandidate = createServerFn({ method: "GET" })
         : { data: [] as { id: string; full_name: string | null; email: string }[] };
       const map = new Map((profs ?? []).map((p) => [p.id, p.full_name || p.email]));
       activity = (log ?? []).map((l) => ({
-        id: l.id, created_at: l.created_at, action: l.action, payload: l.payload,
+        id: l.id, created_at: l.created_at, action: l.action,
+        payload: (l.payload ?? {}) as ActivityItem["payload"],
         user_name: l.user_id ? map.get(l.user_id) ?? null : null,
       }));
     }
