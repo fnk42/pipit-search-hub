@@ -65,7 +65,7 @@ export function CandidateForm({
     <form
       onSubmit={form.handleSubmit(async (v) => {
         setSubmitting(true);
-        try { await onSubmit({ ...v, location_bucket: v.location_bucket || undefined }); }
+        try { await onSubmit({ ...v, location_bucket: (v.location_bucket || undefined) as never }); }
         finally { setSubmitting(false); }
       })}
       className="space-y-5"
