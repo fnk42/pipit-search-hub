@@ -28,15 +28,35 @@ const optBool = z.preprocess((v) => {
 const norm = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 
 const PIPELINE_VALUE_ALIASES: Record<string, PipelineStage> = {
+  // Sourced
   "sourced": "Sourced", "new": "Sourced", "lead": "Sourced",
+  "for sean please reach out": "Sourced", "for sean to reach out": "Sourced",
+  // Contacted
   "contacted": "Contacted", "outreach": "Contacted", "reached out": "Contacted",
+  "reached out referral": "Contacted", "reached out-referral": "Contacted",
+  // Engaged
   "engaged": "Engaged", "responding": "Engaged", "in conversation": "Engaged",
+  "responded scheduled for screening": "Engaged", "responded": "Engaged",
+  // Screening
   "screening": "Screening", "screen": "Screening", "phone screen": "Screening", "interviewing": "Screening",
-  "client interview": "Client Interview", "client int": "Client Interview", "with client": "Client Interview",
+  "initial screening": "Screening", "initial screening sam stephanie": "Screening",
+  "final screening": "Screening", "final screening sean": "Screening",
+  "profile screened by stephanie": "Screening", "profile screened by sam": "Screening", "profile screened": "Screening",
+  // Client Interview
+  "client interview": "Client Interview", "client interviews": "Client Interview", "client int": "Client Interview", "with client": "Client Interview",
+  // Offer
   "offer": "Offer", "offer extended": "Offer",
+  // Placed
   "placed": "Placed", "hired": "Placed",
-  "declined": "Declined", "rejected": "Declined", "rejected by transformari": "Declined", "rejected by client": "Declined", "passed by client": "Declined",
-  "passed": "Passed", "not interested": "Passed", "candidate passed": "Passed", "withdrew": "Passed", "withdrawn": "Passed",
+  // Declined (rejected by us / client / firm)
+  "declined": "Declined", "rejected": "Declined",
+  "rejected by transformari": "Declined", "rejected by client": "Declined",
+  "rejected by gpr": "Declined", "rejected by gpr felix": "Declined",
+  "passed by client": "Declined",
+  // Passed (candidate-side withdrawal/rejection)
+  "passed": "Passed", "not interested": "Passed",
+  "rejected by candidate": "Passed", "candidate passed": "Passed",
+  "withdrew": "Passed", "withdrawn": "Passed",
 };
 
 const IR_VALUE_ALIASES: Record<string, IrFunction> = {
