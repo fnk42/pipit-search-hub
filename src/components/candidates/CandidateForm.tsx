@@ -28,6 +28,7 @@ const schema = z.object({
   next_action_date: z.string().optional(),
   last_contact_date: z.string().optional(),
   client_visible: z.boolean(),
+  shortlisted: z.boolean().optional(),
 });
 
 export type CandidateFormValues = z.infer<typeof schema>;
@@ -50,6 +51,7 @@ export function CandidateForm({
       pipeline_stage: "Sourced",
       ir_functions: [],
       client_visible: false,
+      shortlisted: false,
       ...defaultValues,
     },
   });
@@ -132,15 +134,30 @@ export function CandidateForm({
         <Field label="Notes"><Textarea rows={5} {...form.register("notes")} /></Field>
       )}
 
-      <div className="flex items-center justify-between rounded-md border border-border bg-card p-3">
-        <div>
-          <Label className="text-sm">Visible to client</Label>
-          <p className="text-xs text-muted-foreground">Show this candidate in Sean's view.</p>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between rounded-md border border-border bg-card p-3">
+          <div>
+            <Label className="text-sm">Shortlisted</Label>
+            <p className="text-xs text-muted-foreground">Adds to the client-facing shortlist and makes visible automatically.</p>
+          </div>
+          <Switch
+            checked={form.watch("shortlisted") ?? false}
+            onCheckedChange={(v) => {
+              form.setValue("shortlisted", v, { shouldDirty: true });
+              if (v) form.setValue("client_visible", true, { shouldDirty: true });
+            }}
+          />
         </div>
-        <Switch
-          checked={form.watch("client_visible")}
-          onCheckedChange={(v) => form.setValue("client_visible", v, { shouldDirty: true })}
-        />
+        <div className="flex items-center justify-between rounded-md border border-border bg-card p-3">
+          <div>
+            <Label className="text-sm">Visible to client</Label>
+            <p className="text-xs text-muted-foreground">Show this candidate in Sean's view.</p>
+          </div>
+          <Switch
+            checked={form.watch("client_visible")}
+            onCheckedChange={(v) => form.setValue("client_visible", v, { shouldDirty: true })}
+          />
+        </div>
       </div>
 
       <div className="flex items-center justify-end gap-2">
