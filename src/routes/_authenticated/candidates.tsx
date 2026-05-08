@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listCandidates, setShortlist } from "@/lib/candidates.functions";
@@ -13,7 +13,15 @@ import { Upload, Star, StarOff, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
+type CandidatesSearch = { stage?: string; location?: string; irFunction?: string; search?: string };
+
 export const Route = createFileRoute("/_authenticated/candidates")({
+  validateSearch: (raw: Record<string, unknown>): CandidatesSearch => ({
+    stage: typeof raw.stage === "string" ? raw.stage : undefined,
+    location: typeof raw.location === "string" ? raw.location : undefined,
+    irFunction: typeof raw.irFunction === "string" ? raw.irFunction : undefined,
+    search: typeof raw.search === "string" ? raw.search : undefined,
+  }),
   component: CandidatesPage,
 });
 
@@ -22,10 +30,42 @@ type Tab = "master" | "shortlist";
 function CandidatesPage() {
   const { role } = useAuth();
   const isRecruiter = role === "recruiter";
+  const navigate = useNavigate({ from: Route.fullPath });
+  const search = Route.useSearch();
   const [tab, setTab] = useState<Tab>("master");
-  const [filters, setFilters] = useState<Filters>(defaultFilters);
+  const [filters, setFilters] = useState<Filters>(() => ({
+    ...defaultFilters,
+    search: search.search ?? "",
+    stage: search.stage ?? "",
+    location: search.location ?? "",
+    irFunction: search.irFunction ?? "",
+  }));
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const qc = useQueryClient();
+
+  // Sync URL → filters when search params change (e.g. from dashboard drill-down)
+  useEffect(() => {
+    setFilters((f) => ({
+      ...f,
+      search: search.search ?? "",
+      stage: search.stage ?? "",
+      location: search.location ?? "",
+      irFunction: search.irFunction ?? "",
+    }));
+  }, [search.search, search.stage, search.location, search.irFunction]);
+
+  const handleFiltersChange = (next: Filters) => {
+    setFilters(next);
+    navigate({
+      search: {
+        search: next.search || undefined,
+        stage: next.stage || undefined,
+        location: next.location || undefined,
+        irFunction: next.irFunction || undefined,
+      },
+      replace: true,
+    });
+  };
 
   const list = useServerFn(listCandidates);
   const shortlistFn = useServerFn(setShortlist);
@@ -104,7 +144,7 @@ function CandidatesPage() {
         </Tabs>
       )}
 
-      <CandidateFilters value={filters} onChange={setFilters} role={isRecruiter ? "recruiter" : "client"} />
+      <CandidateFilters value={filters} onChange={handleFiltersChange} role={isRecruiter ? "recruiter" : "client"} />
 
       {isLoading ? (
         <div className="space-y-2">

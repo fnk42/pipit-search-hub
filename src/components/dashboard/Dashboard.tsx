@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { getDashboardData, type DashboardData } from "@/lib/dashboard.functions";
 import { Card } from "@/components/ui/card";
@@ -112,7 +113,12 @@ function PipelineFunnel({ data, loading }: { data?: DashboardData; loading: bool
         {funnel.map((f) => {
           const pct = (f.count / max) * 100;
           return (
-            <div key={f.stage} className="grid grid-cols-[140px_1fr_36px] sm:grid-cols-[180px_1fr_48px] items-center gap-3">
+            <Link
+              key={f.stage}
+              to="/candidates"
+              search={{ stage: f.stage }}
+              className="grid grid-cols-[140px_1fr_36px] sm:grid-cols-[180px_1fr_48px] items-center gap-3 rounded-sm hover:bg-muted/40 px-1 -mx-1 py-0.5 transition-colors"
+            >
               <span className="text-xs sm:text-sm text-muted-foreground truncate">{f.stage}</span>
               <div className="h-7 bg-secondary/60 rounded-sm overflow-hidden">
                 <div
@@ -121,7 +127,7 @@ function PipelineFunnel({ data, loading }: { data?: DashboardData; loading: bool
                 />
               </div>
               <span className="text-sm font-semibold text-primary tabular-nums text-right">{f.count}</span>
-            </div>
+            </Link>
           );
         })}
       </div>
@@ -132,18 +138,27 @@ function PipelineFunnel({ data, loading }: { data?: DashboardData; loading: bool
 function StatCardsRow({
   data, loading, role,
 }: { data?: DashboardData; loading: boolean; role: "recruiter" | "client" | null }) {
+  const navigate = useNavigate();
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
       <Card className="p-6 shadow-[var(--shadow-soft)]">
         <h3 className="text-sm font-semibold text-primary mb-1">Geography coverage</h3>
-        <p className="text-xs text-muted-foreground mb-4">Candidates by region</p>
+        <p className="text-xs text-muted-foreground mb-4">Candidates by region · click to filter</p>
         <div className="h-44">
           {loading ? <Skeleton className="h-full w-full" /> : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data?.geography ?? []} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <XAxis dataKey="bucket" tick={{ fontSize: 10, fill: "currentColor" }} stroke={MUTED} interval={0} />
                 <YAxis tick={{ fontSize: 10, fill: "currentColor" }} stroke={MUTED} allowDecimals={false} />
-                <Bar dataKey="count" fill={NAVY} radius={[3, 3, 0, 0]} />
+                <Bar
+                  dataKey="count"
+                  fill={NAVY}
+                  radius={[3, 3, 0, 0]}
+                  cursor="pointer"
+                  onClick={(d: { bucket?: string }) => {
+                    if (d?.bucket) navigate({ to: "/candidates", search: { location: d.bucket } });
+                  }}
+                />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -152,7 +167,7 @@ function StatCardsRow({
 
       <Card className="p-6 shadow-[var(--shadow-soft)]">
         <h3 className="text-sm font-semibold text-primary mb-1">IR function mix</h3>
-        <p className="text-xs text-muted-foreground mb-4">Candidate skill distribution</p>
+        <p className="text-xs text-muted-foreground mb-4">Candidate skill distribution · click to filter</p>
         <div className="h-44 flex items-center">
           {loading ? <Skeleton className="h-full w-full" /> : (
             <ResponsiveContainer width="100%" height="100%">
@@ -165,6 +180,10 @@ function StatCardsRow({
                   outerRadius={64}
                   paddingAngle={2}
                   stroke="none"
+                  cursor="pointer"
+                  onClick={(d: { name?: string }) => {
+                    if (d?.name) navigate({ to: "/candidates", search: { irFunction: d.name } });
+                  }}
                 >
                   {(data?.irFunctions ?? []).map((_, i) => (
                     <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
