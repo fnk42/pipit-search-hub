@@ -16,7 +16,6 @@ import { Route as AuthenticatedWeeklyReportRouteImport } from './routes/_authent
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPeFirmsRouteImport } from './routes/_authenticated/pe-firms'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedCandidatesRouteImport } from './routes/_authenticated/candidates'
 import { Route as AuthenticatedActivityLogRouteImport } from './routes/_authenticated/activity-log'
 
 const LoginRoute = LoginRouteImport.update({
@@ -54,11 +53,6 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedCandidatesRoute = AuthenticatedCandidatesRouteImport.update({
-  id: '/candidates',
-  path: '/candidates',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedActivityLogRoute =
   AuthenticatedActivityLogRouteImport.update({
     id: '/activity-log',
@@ -70,7 +64,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/activity-log': typeof AuthenticatedActivityLogRoute
-  '/candidates': typeof AuthenticatedCandidatesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/pe-firms': typeof AuthenticatedPeFirmsRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -80,7 +73,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/activity-log': typeof AuthenticatedActivityLogRoute
-  '/candidates': typeof AuthenticatedCandidatesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/pe-firms': typeof AuthenticatedPeFirmsRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -92,7 +84,6 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/activity-log': typeof AuthenticatedActivityLogRoute
-  '/_authenticated/candidates': typeof AuthenticatedCandidatesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/pe-firms': typeof AuthenticatedPeFirmsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -104,7 +95,6 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/activity-log'
-    | '/candidates'
     | '/dashboard'
     | '/pe-firms'
     | '/settings'
@@ -114,7 +104,6 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/activity-log'
-    | '/candidates'
     | '/dashboard'
     | '/pe-firms'
     | '/settings'
@@ -125,7 +114,6 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/_authenticated/activity-log'
-    | '/_authenticated/candidates'
     | '/_authenticated/dashboard'
     | '/_authenticated/pe-firms'
     | '/_authenticated/settings'
@@ -189,13 +177,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/candidates': {
-      id: '/_authenticated/candidates'
-      path: '/candidates'
-      fullPath: '/candidates'
-      preLoaderRoute: typeof AuthenticatedCandidatesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/activity-log': {
       id: '/_authenticated/activity-log'
       path: '/activity-log'
@@ -208,7 +189,6 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedActivityLogRoute: typeof AuthenticatedActivityLogRoute
-  AuthenticatedCandidatesRoute: typeof AuthenticatedCandidatesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedPeFirmsRoute: typeof AuthenticatedPeFirmsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -217,7 +197,6 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedActivityLogRoute: AuthenticatedActivityLogRoute,
-  AuthenticatedCandidatesRoute: AuthenticatedCandidatesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedPeFirmsRoute: AuthenticatedPeFirmsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
@@ -236,3 +215,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
