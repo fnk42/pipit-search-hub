@@ -71,13 +71,23 @@ export function CandidatesTable({
         {rows.map((c) => (
           <div key={c.id} className="rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-soft)]">
             <div className="flex items-start justify-between gap-3">
-              <Link to="/candidates/$id" params={{ id: c.id }} className="min-w-0 flex-1">
-                <div className="font-medium text-sm text-foreground truncate flex items-center gap-1.5">
-                  {c.shortlisted && <Star className="h-3.5 w-3.5 fill-accent text-accent shrink-0" />}
-                  {c.name}
-                </div>
-                <div className="text-xs text-muted-foreground truncate">{c.current_title}{c.current_firm ? ` · ${c.current_firm}` : ""}</div>
-              </Link>
+              <div className="min-w-0 flex-1">
+                {c.linkedin_url ? (
+                  <a href={c.linkedin_url} target="_blank" rel="noreferrer" className="font-medium text-sm text-foreground truncate flex items-center gap-1.5 hover:text-primary">
+                    {c.shortlisted && <Star className="h-3.5 w-3.5 fill-accent text-accent shrink-0" />}
+                    <span className="truncate">{c.name}</span>
+                    <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+                  </a>
+                ) : (
+                  <Link to="/candidates/$id" params={{ id: c.id }} className="font-medium text-sm text-foreground truncate flex items-center gap-1.5 hover:text-primary">
+                    {c.shortlisted && <Star className="h-3.5 w-3.5 fill-accent text-accent shrink-0" />}
+                    <span className="truncate">{c.name}</span>
+                  </Link>
+                )}
+                <Link to="/candidates/$id" params={{ id: c.id }} className="text-xs text-muted-foreground truncate block hover:text-foreground">
+                  {c.current_title}{c.current_firm ? ` · ${c.current_firm}` : ""}
+                </Link>
+              </div>
               <StageBadge stage={c.pipeline_stage} />
             </div>
             {c.next_action && <div className="text-xs text-muted-foreground mt-2">Next: {c.next_action}</div>}
