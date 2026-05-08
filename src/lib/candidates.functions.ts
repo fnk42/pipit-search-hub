@@ -76,8 +76,8 @@ const candidateInput = z.object({
   linkedin_url: z.string().trim().max(500).optional().or(z.literal("").transform(() => undefined)),
   notes: z.string().max(10000).optional().or(z.literal("").transform(() => undefined)),
   next_action: z.string().trim().max(500).optional().or(z.literal("").transform(() => undefined)),
-  next_action_date: z.string().optional().or(z.literal("").transform(() => undefined)),
-  last_contact_date: z.string().optional().or(z.literal("").transform(() => undefined)),
+  next_action_date: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().optional()),
+  last_contact_date: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().optional()),
   client_visible: z.boolean().default(false),
 });
 
