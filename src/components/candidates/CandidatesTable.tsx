@@ -145,9 +145,34 @@ export function CandidatesTable({
                   </TableCell>
                 )}
                 <TableCell className="font-medium">
-                  <Link to="/candidates/$id" params={{ id: c.id }} className="hover:text-primary">
-                    {c.name}
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    {c.linkedin_url ? (
+                      <a
+                        href={c.linkedin_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="hover:text-primary inline-flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {c.name}
+                        <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                      </a>
+                    ) : (
+                      <Link to="/candidates/$id" params={{ id: c.id }} className="hover:text-primary">
+                        {c.name}
+                      </Link>
+                    )}
+                    <Link
+                      to="/candidates/$id"
+                      params={{ id: c.id }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+                      aria-label="Open candidate details"
+                      title="Open details"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
                 </TableCell>
                 <TableCell className="text-sm text-foreground">{c.current_firm ?? "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{c.current_title ?? "—"}</TableCell>
