@@ -8,6 +8,7 @@ import {
   Activity,
   Settings,
   LogOut,
+  Upload,
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,6 +31,7 @@ type NavItem = { title: string; url: string; icon: typeof LayoutDashboard };
 const recruiterNav: NavItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Candidates", url: "/candidates", icon: Users },
+  { title: "Import", url: "/import", icon: Upload },
   { title: "PE Firms", url: "/pe-firms", icon: Building2 },
   { title: "Weekly Report", url: "/weekly-report", icon: FileText },
   { title: "Activity Log", url: "/activity-log", icon: Activity },
