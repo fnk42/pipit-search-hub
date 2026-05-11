@@ -28,6 +28,7 @@ const schema = z.object({
   owner: z.enum([...OWNERS, "" as const]).optional(),
   screen_out_reason: z.enum([...SCREEN_OUT_REASONS, "" as const]).optional(),
   feedback_transformari: z.string().max(10000).optional(),
+  fnk_comments: z.string().max(10000).optional(),
   linkedin_url: z.string().max(500).optional(),
   notes: z.string().max(10000).optional(),
   date_sourced: z.string().optional(),
