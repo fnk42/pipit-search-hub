@@ -255,6 +255,7 @@ export const CANDIDATE_HEADER_ALIASES: Record<string, string[]> = {
   owner: ["owner","assignee","assigned to"],
   screen_out_reason: ["screen out reason","screened out reason","screened out reasons","rejection reason","rejected reason","rejected reasons","reason"],
   feedback_transformari: ["feedback transformari","feedback from transformari","transformari feedback","feedback"],
+  fnk_comments: ["fnk comments","fnk","fnk notes","fnk comment"],
   linkedin_url: ["linkedin","linkedin url","linkedin profile","profile url"],
   notes: ["notes","comments","remarks"],
   date_sourced: ["date sourced","sourced date","date added","added on","source date"],
