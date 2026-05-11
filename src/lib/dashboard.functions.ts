@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { PIPELINE_STAGES, REJECTED_STAGES, IR_FUNCTIONS } from "@/lib/csv-schemas";
 
 export const TOTAL_PE_UNIVERSE = 91;
 
@@ -9,24 +10,39 @@ export type DashboardData = {
   daysActive: number;
   candidatesInPipeline: number;
   shortlistedCount: number;
+  weekly: {
+    addedToday: number;
+    addedThisWeek: number;
+    rejectedByTransformariThisWeek: number;
+    rejectedPctThisWeek: number | null;
+  };
   funnel: { stage: string; count: number }[];
   geography: { bucket: string; count: number }[];
   irFunctions: { name: string; count: number }[];
+  rejectionByWho: { week: { name: string; count: number }[]; all: { name: string; count: number }[] };
+  rejectionByReason: { week: { name: string; count: number }[]; all: { name: string; count: number }[] };
+  topFirms: { firm: string; count: number }[];
   peCoverage: { sourced: number; total: number };
   activity: { id: string; created_at: string; user_name: string | null; description: string }[];
 };
 
-const STAGE_ORDER = [
-  "Sourced",
-  "Contacted",
-  "Engaged",
-  "Screening",
-  "Client Interview",
-  "Offer",
+const ACTIVE_EXCLUDE = new Set<string>([
   "Placed",
-] as const;
+  ...REJECTED_STAGES,
+]);
 
-const ACTIVE_EXCLUDE = new Set(["Placed", "Declined", "Passed"]);
+function startOfWeekIso(): string {
+  const d = new Date();
+  const day = d.getUTCDay(); // 0=Sun
+  const diff = (day + 6) % 7; // Monday start
+  d.setUTCDate(d.getUTCDate() - diff);
+  d.setUTCHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export const getDashboardData = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -34,32 +50,45 @@ export const getDashboardData = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
 
     const { data: roleRow } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
+      .from("user_roles").select("role").eq("user_id", userId).maybeSingle();
     const role = (roleRow?.role as "recruiter" | "client") ?? "client";
 
-    // Candidates: RLS already filters client to client_visible only
     const { data: candidates } = await supabase
       .from("candidates")
-      .select("id, created_at, pipeline_stage, location_bucket, ir_functions, shortlisted");
+      .select("id, created_at, updated_at, date_sourced, pipeline_stage, location_bucket, ir_functions, shortlisted, screen_out_reason, current_firm");
 
-    const list = candidates ?? [];
+    const list = (candidates ?? []) as Array<{
+      id: string; created_at: string; updated_at: string; date_sourced: string | null;
+      pipeline_stage: string; location_bucket: string | null;
+      ir_functions: string[]; shortlisted: boolean;
+      screen_out_reason: string | null; current_firm: string | null;
+    }>;
 
-    const searchInitiated =
-      list.length > 0
-        ? list.reduce((min, c) => (c.created_at < min ? c.created_at : min), list[0].created_at)
-        : null;
-
+    const searchInitiated = list.length
+      ? list.reduce((min, c) => (c.created_at < min ? c.created_at : min), list[0].created_at)
+      : null;
     const daysActive = searchInitiated
       ? Math.max(0, Math.floor((Date.now() - new Date(searchInitiated).getTime()) / 86400000))
       : 0;
 
-    const candidatesInPipeline = list.filter((c) => !ACTIVE_EXCLUDE.has(c.pipeline_stage as string)).length;
-    const shortlistedCount = list.filter((c) => (c as { shortlisted?: boolean }).shortlisted).length;
+    const candidatesInPipeline = list.filter((c) => !ACTIVE_EXCLUDE.has(c.pipeline_stage)).length;
+    const shortlistedCount = list.filter((c) => c.shortlisted).length;
 
-    const funnel = STAGE_ORDER.map((stage) => ({
+    const today = todayIsoDate();
+    const weekStart = startOfWeekIso();
+    const addedToday = list.filter((c) => (c.date_sourced ?? c.created_at.slice(0, 10)) === today).length;
+    const addedThisWeek = list.filter((c) => {
+      const d = c.date_sourced ?? c.created_at.slice(0, 10);
+      return d >= weekStart.slice(0, 10);
+    }).length;
+    const rejectedByTransformariThisWeek = list.filter(
+      (c) => c.pipeline_stage === "Rejected by Transformari" && c.updated_at >= weekStart,
+    ).length;
+    const rejectedPctThisWeek = addedThisWeek > 0
+      ? Math.round((rejectedByTransformariThisWeek / addedThisWeek) * 100)
+      : null;
+
+    const funnel = PIPELINE_STAGES.map((stage) => ({
       stage,
       count: list.filter((c) => c.pipeline_stage === stage).length,
     }));
@@ -70,11 +99,45 @@ export const getDashboardData = createServerFn({ method: "GET" })
       count: list.filter((c) => c.location_bucket === b).length,
     }));
 
-    const irBuckets = ["Capital Raising", "LP Relations", "Reporting & Analytics", "Marketing & Comms", "Strategy"];
-    const irFunctions = irBuckets.map((name) => ({
+    const irFunctions = IR_FUNCTIONS.map((name) => ({
       name,
-      count: list.filter((c) => Array.isArray(c.ir_functions) && c.ir_functions.includes(name as never)).length,
+      count: list.filter((c) => Array.isArray(c.ir_functions) && c.ir_functions.includes(name)).length,
     }));
+
+    const rejectionByWhoAll = REJECTED_STAGES.map((s) => ({
+      name: s,
+      count: list.filter((c) => c.pipeline_stage === s).length,
+    }));
+    const rejectionByWhoWeek = REJECTED_STAGES.map((s) => ({
+      name: s,
+      count: list.filter((c) => c.pipeline_stage === s && c.updated_at >= weekStart).length,
+    }));
+
+    const reasonGroup = (filterFn: (c: typeof list[number]) => boolean) => {
+      const m = new Map<string, number>();
+      for (const c of list) {
+        if (!c.screen_out_reason) continue;
+        if (!filterFn(c)) continue;
+        m.set(c.screen_out_reason, (m.get(c.screen_out_reason) ?? 0) + 1);
+      }
+      return Array.from(m.entries())
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
+    };
+    const rejectionByReasonAll = reasonGroup(() => true);
+    const rejectionByReasonWeek = reasonGroup((c) => c.updated_at >= weekStart);
+
+    const reachedOutSet = new Set(PIPELINE_STAGES.filter((s) => s !== "Sourced" && s !== "For Sean - Please reach out"));
+    const firmCounts = new Map<string, number>();
+    for (const c of list) {
+      if (!c.current_firm) continue;
+      if (!reachedOutSet.has(c.pipeline_stage as never)) continue;
+      firmCounts.set(c.current_firm, (firmCounts.get(c.current_firm) ?? 0) + 1);
+    }
+    const topFirms = Array.from(firmCounts.entries())
+      .map(([firm, count]) => ({ firm, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
 
     let peCoverage = { sourced: 0, total: TOTAL_PE_UNIVERSE };
     let activity: DashboardData["activity"] = [];
@@ -101,14 +164,10 @@ export const getDashboardData = createServerFn({ method: "GET" })
       activity = (log ?? []).map((row) => {
         const p = (row.payload ?? {}) as { name?: string; from?: string; to?: string; stage?: string };
         let description = row.action;
-        if (row.action === "stage_change" && p.name) {
-          description = `${p.name} moved from ${p.from} to ${p.to}`;
-        } else if (row.action === "candidate_created" && p.name) {
-          description = `${p.name} added to pipeline`;
-        }
+        if (row.action === "stage_change" && p.name) description = `${p.name} moved from ${p.from} to ${p.to}`;
+        else if (row.action === "candidate_created" && p.name) description = `${p.name} added to pipeline`;
         return {
-          id: row.id,
-          created_at: row.created_at,
+          id: row.id, created_at: row.created_at,
           user_name: row.user_id ? nameMap.get(row.user_id) ?? null : null,
           description,
         };
@@ -121,9 +180,18 @@ export const getDashboardData = createServerFn({ method: "GET" })
       daysActive,
       candidatesInPipeline,
       shortlistedCount,
+      weekly: {
+        addedToday,
+        addedThisWeek,
+        rejectedByTransformariThisWeek,
+        rejectedPctThisWeek,
+      },
       funnel,
       geography,
       irFunctions,
+      rejectionByWho: { week: rejectionByWhoWeek, all: rejectionByWhoAll },
+      rejectionByReason: { week: rejectionByReasonWeek, all: rejectionByReasonAll },
+      topFirms,
       peCoverage,
       activity,
     };

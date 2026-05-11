@@ -6,7 +6,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, Star, ExternalLink, FileText } from "lucide-react";
 import { StageBadge } from "./StageBadge";
+import { EditableText, EditableSelect, EditableDate } from "./EditableCell";
 import { updateCandidate, setShortlist } from "@/lib/candidates.functions";
+import {
+  PIPELINE_STAGES, LOCATION_BUCKETS, OWNERS, SOURCED_BY_OPTIONS,
+  SCREEN_OUT_REASONS, REJECTED_STAGES,
+} from "@/lib/csv-schemas";
 import { toast } from "sonner";
 
 type Candidate = {
@@ -16,12 +21,16 @@ type Candidate = {
   current_title: string | null;
   pipeline_stage: string;
   location_bucket: string | null;
-  last_contact_date: string | null;
-  next_action: string | null;
   client_visible: boolean;
   shortlisted: boolean;
   linkedin_url?: string | null;
+  owner?: string | null;
+  sourced_by?: string | null;
+  screen_out_reason?: string | null;
+  date_sourced?: string | null;
 };
+
+const REJ = new Set<string>(REJECTED_STAGES);
 
 export function CandidatesTable({
   rows, role, selected, onToggleRow, onToggleAll,
@@ -36,6 +45,15 @@ export function CandidatesTable({
   const updateFn = useServerFn(updateCandidate);
   const shortlistFn = useServerFn(setShortlist);
   const isRecruiter = role === "recruiter";
+
+  const patch = async (id: string, patch: Record<string, unknown>) => {
+    try {
+      await updateFn({ data: { id, patch: patch as never } });
+      qc.invalidateQueries({ queryKey: ["candidates"] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   const toggleVis = useMutation({
     mutationFn: async (c: Candidate) =>
@@ -73,14 +91,14 @@ export function CandidatesTable({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 {c.linkedin_url ? (
-                  <a href={c.linkedin_url} target="_blank" rel="noreferrer" className="font-medium text-sm text-foreground truncate flex items-center gap-1.5 hover:text-primary">
-                    {c.shortlisted && <Star className="h-3.5 w-3.5 fill-accent text-accent shrink-0" />}
+                  <a href={c.linkedin_url} target="_blank" rel="noreferrer" className="font-medium text-sm text-foreground truncate flex items-center gap-1.5 hover:text-accent">
+                    {c.shortlisted && <Star className="h-3.5 w-3.5 fill-[var(--metric-amber)] text-[var(--metric-amber)] shrink-0" />}
                     <span className="truncate">{c.name}</span>
                     <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
                   </a>
                 ) : (
-                  <Link to="/candidates/$id" params={{ id: c.id }} className="font-medium text-sm text-foreground truncate flex items-center gap-1.5 hover:text-primary">
-                    {c.shortlisted && <Star className="h-3.5 w-3.5 fill-accent text-accent shrink-0" />}
+                  <Link to="/candidates/$id" params={{ id: c.id }} className="font-medium text-sm text-foreground truncate flex items-center gap-1.5 hover:text-accent">
+                    {c.shortlisted && <Star className="h-3.5 w-3.5 fill-[var(--metric-amber)] text-[var(--metric-amber)] shrink-0" />}
                     <span className="truncate">{c.name}</span>
                   </Link>
                 )}
@@ -90,7 +108,6 @@ export function CandidatesTable({
               </div>
               <StageBadge stage={c.pipeline_stage} />
             </div>
-            {c.next_action && <div className="text-xs text-muted-foreground mt-2">Next: {c.next_action}</div>}
           </div>
         ))}
       </div>
@@ -102,98 +119,146 @@ export function CandidatesTable({
             <TableRow>
               {isRecruiter && (
                 <TableHead className="w-10">
-                  <Checkbox
-                    checked={allSelected}
-                    onCheckedChange={() => onToggleAll?.()}
-                    aria-label="Select all"
-                  />
+                  <Checkbox checked={allSelected} onCheckedChange={() => onToggleAll?.()} aria-label="Select all" />
                 </TableHead>
               )}
               {isRecruiter && <TableHead className="w-10"></TableHead>}
               <TableHead>Name</TableHead>
-              <TableHead>Firm</TableHead>
               <TableHead>Title</TableHead>
+              <TableHead>Company</TableHead>
               <TableHead>Stage</TableHead>
               <TableHead>Location</TableHead>
-              <TableHead>Last contact</TableHead>
-              <TableHead>Next action</TableHead>
+              {isRecruiter && <TableHead>Owner</TableHead>}
+              {isRecruiter && <TableHead>Sourced by</TableHead>}
+              {isRecruiter && <TableHead>Screen out reason</TableHead>}
+              <TableHead>Sourced</TableHead>
               {isRecruiter && <TableHead className="text-right">Visible</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((c) => (
-              <TableRow key={c.id} className="cursor-pointer">
-                {isRecruiter && (
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={selected?.has(c.id) ?? false}
-                      onCheckedChange={() => onToggleRow?.(c.id)}
-                      aria-label={`Select ${c.name}`}
-                    />
-                  </TableCell>
-                )}
-                {isRecruiter && (
-                  <TableCell>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setPendingId(c.id); toggleStar.mutate(c, { onSettled: () => setPendingId(null) }); }}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted"
-                      aria-label={c.shortlisted ? "Remove from shortlist" : "Add to shortlist"}
-                      disabled={pendingId === c.id}
-                    >
-                      <Star className={`h-4 w-4 ${c.shortlisted ? "fill-accent text-accent" : "text-muted-foreground"}`} />
-                    </button>
-                  </TableCell>
-                )}
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    {c.linkedin_url ? (
-                      <a
-                        href={c.linkedin_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="hover:text-primary inline-flex items-center gap-1"
-                        onClick={(e) => e.stopPropagation()}
+            {rows.map((c) => {
+              const isRej = REJ.has(c.pipeline_stage);
+              return (
+                <TableRow key={c.id}>
+                  {isRecruiter && (
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selected?.has(c.id) ?? false}
+                        onCheckedChange={() => onToggleRow?.(c.id)}
+                        aria-label={`Select ${c.name}`}
+                      />
+                    </TableCell>
+                  )}
+                  {isRecruiter && (
+                    <TableCell>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setPendingId(c.id); toggleStar.mutate(c, { onSettled: () => setPendingId(null) }); }}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted"
+                        aria-label={c.shortlisted ? "Remove from shortlist" : "Add to shortlist"}
+                        disabled={pendingId === c.id}
                       >
-                        {c.name}
-                        <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                      </a>
-                    ) : (
-                      <Link to="/candidates/$id" params={{ id: c.id }} className="hover:text-primary">
-                        {c.name}
+                        <Star className={`h-4 w-4 ${c.shortlisted ? "fill-[var(--metric-amber)] text-[var(--metric-amber)]" : "text-muted-foreground"}`} />
+                      </button>
+                    </TableCell>
+                  )}
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {c.linkedin_url ? (
+                        <a
+                          href={c.linkedin_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="hover:text-accent inline-flex items-center gap-1"
+                        >
+                          {c.name}
+                          <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                        </a>
+                      ) : (
+                        <Link to="/candidates/$id" params={{ id: c.id }} className="hover:text-accent">{c.name}</Link>
+                      )}
+                      <Link
+                        to="/candidates/$id" params={{ id: c.id }}
+                        className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+                        aria-label="Open candidate details" title="Open details"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
                       </Link>
-                    )}
-                    <Link
-                      to="/candidates/$id"
-                      params={{ id: c.id }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
-                      aria-label="Open candidate details"
-                      title="Open details"
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                    </Link>
-                  </div>
-                </TableCell>
-                <TableCell className="text-sm text-foreground">{c.current_firm ?? "—"}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{c.current_title ?? "—"}</TableCell>
-                <TableCell><StageBadge stage={c.pipeline_stage} /></TableCell>
-                <TableCell className="text-sm text-muted-foreground">{c.location_bucket ?? "—"}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{c.last_contact_date ?? "—"}</TableCell>
-                <TableCell className="text-sm text-muted-foreground max-w-[18ch] truncate">{c.next_action ?? "—"}</TableCell>
-                {isRecruiter && (
-                  <TableCell className="text-right">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setPendingId(c.id); toggleVis.mutate(c, { onSettled: () => setPendingId(null) }); }}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"
-                      aria-label="Toggle client visibility"
-                      disabled={pendingId === c.id}
-                    >
-                      {c.client_visible ? <Eye className="h-4 w-4 text-accent" /> : <EyeOff className="h-4 w-4" />}
-                    </button>
+                    </div>
                   </TableCell>
-                )}
-              </TableRow>
-            ))}
+                  <TableCell className="text-sm text-foreground">
+                    {isRecruiter
+                      ? <EditableText value={c.current_title} onSave={(v) => patch(c.id, { current_title: v })} placeholder="—" />
+                      : (c.current_title ?? "—")}
+                  </TableCell>
+                  <TableCell className="text-sm text-foreground">
+                    {isRecruiter
+                      ? <EditableText value={c.current_firm} onSave={(v) => patch(c.id, { current_firm: v })} placeholder="—" />
+                      : (c.current_firm ?? "—")}
+                  </TableCell>
+                  <TableCell>
+                    {isRecruiter ? (
+                      <EditableSelect
+                        value={c.pipeline_stage}
+                        options={PIPELINE_STAGES}
+                        onSave={(v) => patch(c.id, { pipeline_stage: v, ...(v && !REJ.has(v) ? { screen_out_reason: null } : {}) })}
+                        display={(v) => <StageBadge stage={String(v)} />}
+                      />
+                    ) : <StageBadge stage={c.pipeline_stage} />}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {isRecruiter ? (
+                      <EditableSelect
+                        value={c.location_bucket} options={LOCATION_BUCKETS} allowEmpty
+                        onSave={(v) => patch(c.id, { location_bucket: v })}
+                      />
+                    ) : (c.location_bucket ?? "—")}
+                  </TableCell>
+                  {isRecruiter && (
+                    <TableCell className="text-sm text-muted-foreground">
+                      <EditableSelect
+                        value={c.owner} options={OWNERS} allowEmpty
+                        onSave={(v) => patch(c.id, { owner: v })}
+                      />
+                    </TableCell>
+                  )}
+                  {isRecruiter && (
+                    <TableCell className="text-sm text-muted-foreground">
+                      <EditableSelect
+                        value={c.sourced_by ?? "GPR Team"} options={SOURCED_BY_OPTIONS}
+                        onSave={(v) => patch(c.id, { sourced_by: v ?? "GPR Team" })}
+                      />
+                    </TableCell>
+                  )}
+                  {isRecruiter && (
+                    <TableCell className="text-sm text-muted-foreground max-w-[20ch]">
+                      <EditableSelect
+                        value={c.screen_out_reason} options={SCREEN_OUT_REASONS} allowEmpty
+                        disabled={!isRej}
+                        placeholder={isRej ? "—" : "n/a"}
+                        onSave={(v) => patch(c.id, { screen_out_reason: v })}
+                      />
+                    </TableCell>
+                  )}
+                  <TableCell className="text-sm text-muted-foreground tabular-nums">
+                    {isRecruiter ? (
+                      <EditableDate value={c.date_sourced} onSave={(v) => patch(c.id, { date_sourced: v })} />
+                    ) : (c.date_sourced ?? "—")}
+                  </TableCell>
+                  {isRecruiter && (
+                    <TableCell className="text-right">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setPendingId(c.id); toggleVis.mutate(c, { onSettled: () => setPendingId(null) }); }}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"
+                        aria-label="Toggle client visibility"
+                        disabled={pendingId === c.id}
+                      >
+                        {c.client_visible ? <Eye className="h-4 w-4 text-accent" /> : <EyeOff className="h-4 w-4" />}
+                      </button>
+                    </TableCell>
+                  )}
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

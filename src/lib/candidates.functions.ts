@@ -1,13 +1,19 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { PIPELINE_STAGES, LOCATION_BUCKETS, IR_FUNCTIONS } from "@/lib/csv-schemas";
+import {
+  PIPELINE_STAGES, LOCATION_BUCKETS, IR_FUNCTIONS,
+  OWNERS, SOURCED_BY_OPTIONS, SCREEN_OUT_REASONS,
+} from "@/lib/csv-schemas";
 
 const filtersSchema = z.object({
   search: z.string().optional(),
   stage: z.enum(PIPELINE_STAGES).optional(),
   location: z.enum(LOCATION_BUCKETS).optional(),
   irFunction: z.enum(IR_FUNCTIONS).optional(),
+  owner: z.enum(OWNERS).optional(),
+  sourcedBy: z.enum(SOURCED_BY_OPTIONS).optional(),
+  screenOutReason: z.string().optional(),
   clientVisible: z.enum(["yes", "no", "all"]).default("all"),
   shortlisted: z.enum(["yes", "no", "all"]).default("all"),
 }).default({ clientVisible: "all", shortlisted: "all" });
@@ -21,6 +27,9 @@ export const listCandidates = createServerFn({ method: "GET" })
     if (data.stage) q = q.eq("pipeline_stage", data.stage);
     if (data.location) q = q.eq("location_bucket", data.location);
     if (data.irFunction) q = q.contains("ir_functions", [data.irFunction]);
+    if (data.owner) q = q.eq("owner", data.owner);
+    if (data.sourcedBy) q = q.eq("sourced_by", data.sourcedBy);
+    if (data.screenOutReason) q = q.eq("screen_out_reason", data.screenOutReason);
     if (data.clientVisible === "yes") q = q.eq("client_visible", true);
     if (data.clientVisible === "no") q = q.eq("client_visible", false);
     if (data.shortlisted === "yes") q = q.eq("shortlisted", true);
@@ -76,11 +85,13 @@ const candidateInput = z.object({
   location_bucket: z.enum(LOCATION_BUCKETS).optional(),
   ir_functions: z.array(z.enum(IR_FUNCTIONS)).default([]),
   source: z.string().trim().max(200).optional().or(z.literal("").transform(() => undefined)),
+  sourced_by: z.enum(SOURCED_BY_OPTIONS).default("GPR Team"),
+  owner: z.enum(OWNERS).optional().or(z.literal("").transform(() => undefined)),
+  screen_out_reason: z.enum(SCREEN_OUT_REASONS).optional().or(z.literal("").transform(() => undefined)),
+  feedback_transformari: z.string().max(10000).optional().or(z.literal("").transform(() => undefined)),
   linkedin_url: z.string().trim().max(500).optional().or(z.literal("").transform(() => undefined)),
   notes: z.string().max(10000).optional().or(z.literal("").transform(() => undefined)),
-  next_action: z.string().trim().max(500).optional().or(z.literal("").transform(() => undefined)),
-  next_action_date: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().optional()),
-  last_contact_date: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().optional()),
+  date_sourced: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().optional()),
   client_visible: z.boolean().default(false),
   shortlisted: z.boolean().default(false),
 });
@@ -91,7 +102,9 @@ export const createCandidate = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
     const { data: row, error } = await supabase
-      .from("candidates").insert({ ...data, created_by: userId }).select("id").single();
+      .from("candidates")
+      .insert({ ...(data as never), created_by: userId })
+      .select("id").single();
     if (error) throw new Error(error.message);
     return { id: row.id };
   });
@@ -100,7 +113,10 @@ export const updateCandidate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), patch: candidateInput.partial() }).parse(d))
   .handler(async ({ context, data }) => {
-    const { error } = await context.supabase.from("candidates").update(data.patch).eq("id", data.id);
+    const { error } = await context.supabase
+      .from("candidates")
+      .update(data.patch as never)
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
