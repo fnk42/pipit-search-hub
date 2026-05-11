@@ -54,6 +54,7 @@ export type Database = {
           date_sourced: string | null
           email: string | null
           feedback_transformari: string | null
+          fnk_comments: string | null
           id: string
           ir_functions: Database["public"]["Enums"]["ir_function"][]
           last_contact_date: string | null
@@ -81,6 +82,7 @@ export type Database = {
           date_sourced?: string | null
           email?: string | null
           feedback_transformari?: string | null
+          fnk_comments?: string | null
           id?: string
           ir_functions?: Database["public"]["Enums"]["ir_function"][]
           last_contact_date?: string | null
@@ -110,6 +112,7 @@ export type Database = {
           date_sourced?: string | null
           email?: string | null
           feedback_transformari?: string | null
+          fnk_comments?: string | null
           id?: string
           ir_functions?: Database["public"]["Enums"]["ir_function"][]
           last_contact_date?: string | null

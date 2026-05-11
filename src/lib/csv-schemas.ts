@@ -189,9 +189,20 @@ function aliasDate(v: unknown): unknown {
   return Number.isFinite(d.getTime()) ? d.toISOString().slice(0, 10) : undefined;
 }
 
+// Lenient email: accept anything, drop invalid silently. Picks first valid address if multiple are jammed in one cell.
+const lenientEmail = z.preprocess((v) => {
+  if (v == null) return undefined;
+  const s = String(v).trim();
+  if (!s) return undefined;
+  const candidates = s.split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean);
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const hit = candidates.find((c) => emailRe.test(c));
+  return hit ? hit.toLowerCase() : undefined;
+}, z.string().email().optional());
+
 export const candidateRowSchema = z.object({
   name: z.string().trim().min(1, "Name required").max(120),
-  email: optStr.pipe(z.string().email().optional() as never).or(z.undefined()).optional(),
+  email: lenientEmail,
   phone: optStr,
   current_firm: optStr,
   current_title: optStr,
@@ -203,6 +214,7 @@ export const candidateRowSchema = z.object({
   owner: z.preprocess(aliasOwner, z.enum(OWNERS).optional()),
   screen_out_reason: optStr,
   feedback_transformari: optStr,
+  fnk_comments: optStr,
   linkedin_url: optStr,
   notes: optStr,
   date_sourced: z.preprocess(aliasDate, z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
@@ -243,6 +255,7 @@ export const CANDIDATE_HEADER_ALIASES: Record<string, string[]> = {
   owner: ["owner","assignee","assigned to"],
   screen_out_reason: ["screen out reason","screened out reason","screened out reasons","rejection reason","rejected reason","rejected reasons","reason"],
   feedback_transformari: ["feedback transformari","feedback from transformari","transformari feedback","feedback"],
+  fnk_comments: ["fnk comments","fnk","fnk notes","fnk comment"],
   linkedin_url: ["linkedin","linkedin url","linkedin profile","profile url"],
   notes: ["notes","comments","remarks"],
   date_sourced: ["date sourced","sourced date","date added","added on","source date"],
@@ -273,6 +286,7 @@ export const CANDIDATE_FIELDS = [
   { key: "sourced_by", label: "Sourced by" },
   { key: "screen_out_reason", label: "Screen out reason" },
   { key: "feedback_transformari", label: "Feedback (Transformari)" },
+  { key: "fnk_comments", label: "FNK Comments" },
   { key: "date_sourced", label: "Date sourced" },
   { key: "linkedin_url", label: "LinkedIn URL" },
   { key: "notes", label: "Notes" },

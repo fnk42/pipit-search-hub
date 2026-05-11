@@ -89,6 +89,7 @@ const candidateInput = z.object({
   owner: z.enum(OWNERS).optional().or(z.literal("").transform(() => undefined)),
   screen_out_reason: z.enum(SCREEN_OUT_REASONS).optional().or(z.literal("").transform(() => undefined)),
   feedback_transformari: z.string().max(10000).optional().or(z.literal("").transform(() => undefined)),
+  fnk_comments: z.string().max(10000).optional().or(z.literal("").transform(() => undefined)),
   linkedin_url: z.string().trim().max(500).optional().or(z.literal("").transform(() => undefined)),
   notes: z.string().max(10000).optional().or(z.literal("").transform(() => undefined)),
   date_sourced: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().optional()),
