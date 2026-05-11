@@ -148,6 +148,7 @@ function CandidateDetailPage() {
                       owner: (((c as { owner?: string }).owner) ?? "") as never,
                       screen_out_reason: (((c as { screen_out_reason?: string }).screen_out_reason) ?? "") as never,
                       feedback_transformari: (c as { feedback_transformari?: string }).feedback_transformari ?? "",
+                      fnk_comments: (c as { fnk_comments?: string }).fnk_comments ?? "",
                       linkedin_url: c.linkedin_url ?? "",
                       notes: c.notes ?? "",
                       date_sourced: c.date_sourced ?? "",
