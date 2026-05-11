@@ -286,6 +286,7 @@ export const CANDIDATE_FIELDS = [
   { key: "sourced_by", label: "Sourced by" },
   { key: "screen_out_reason", label: "Screen out reason" },
   { key: "feedback_transformari", label: "Feedback (Transformari)" },
+  { key: "fnk_comments", label: "FNK Comments" },
   { key: "date_sourced", label: "Date sourced" },
   { key: "linkedin_url", label: "LinkedIn URL" },
   { key: "notes", label: "Notes" },
