@@ -103,7 +103,7 @@ export const createCandidate = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: row, error } = await supabase
       .from("candidates")
-      .insert({ ...(data as never), created_by: userId })
+      .insert({ ...(data as Record<string, unknown>), created_by: userId } as never)
       .select("id").single();
     if (error) throw new Error(error.message);
     return { id: row.id };

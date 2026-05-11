@@ -13,7 +13,10 @@ import { Upload, Star, StarOff, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
-type CandidatesSearch = { stage?: string; location?: string; irFunction?: string; search?: string };
+type CandidatesSearch = {
+  stage?: string; location?: string; irFunction?: string; search?: string;
+  owner?: string; sourcedBy?: string; screenOutReason?: string;
+};
 
 export const Route = createFileRoute("/_authenticated/candidates")({
   validateSearch: (raw: Record<string, unknown>): CandidatesSearch => ({
@@ -21,6 +24,9 @@ export const Route = createFileRoute("/_authenticated/candidates")({
     location: typeof raw.location === "string" ? raw.location : undefined,
     irFunction: typeof raw.irFunction === "string" ? raw.irFunction : undefined,
     search: typeof raw.search === "string" ? raw.search : undefined,
+    owner: typeof raw.owner === "string" ? raw.owner : undefined,
+    sourcedBy: typeof raw.sourcedBy === "string" ? raw.sourcedBy : undefined,
+    screenOutReason: typeof raw.screenOutReason === "string" ? raw.screenOutReason : undefined,
   }),
   component: CandidatesPage,
 });
@@ -39,11 +45,13 @@ function CandidatesPage() {
     stage: search.stage ?? "",
     location: search.location ?? "",
     irFunction: search.irFunction ?? "",
+    owner: search.owner ?? "",
+    sourcedBy: search.sourcedBy ?? "",
+    screenOutReason: search.screenOutReason ?? "",
   }));
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const qc = useQueryClient();
 
-  // Sync URL → filters when search params change (e.g. from dashboard drill-down)
   useEffect(() => {
     setFilters((f) => ({
       ...f,
@@ -51,8 +59,11 @@ function CandidatesPage() {
       stage: search.stage ?? "",
       location: search.location ?? "",
       irFunction: search.irFunction ?? "",
+      owner: search.owner ?? "",
+      sourcedBy: search.sourcedBy ?? "",
+      screenOutReason: search.screenOutReason ?? "",
     }));
-  }, [search.search, search.stage, search.location, search.irFunction]);
+  }, [search.search, search.stage, search.location, search.irFunction, search.owner, search.sourcedBy, search.screenOutReason]);
 
   const handleFiltersChange = (next: Filters) => {
     setFilters(next);
@@ -62,6 +73,9 @@ function CandidatesPage() {
         stage: next.stage || undefined,
         location: next.location || undefined,
         irFunction: next.irFunction || undefined,
+        owner: next.owner || undefined,
+        sourcedBy: next.sourcedBy || undefined,
+        screenOutReason: next.screenOutReason || undefined,
       },
       replace: true,
     });
@@ -70,7 +84,6 @@ function CandidatesPage() {
   const list = useServerFn(listCandidates);
   const shortlistFn = useServerFn(setShortlist);
 
-  // Always fetch the master list; client only ever sees shortlist (server-side via client_visible RLS).
   const { data, isLoading } = useQuery({
     queryKey: ["candidates", filters],
     queryFn: () => list({
@@ -79,6 +92,9 @@ function CandidatesPage() {
         stage: (filters.stage || undefined) as never,
         location: (filters.location || undefined) as never,
         irFunction: (filters.irFunction || undefined) as never,
+        owner: (filters.owner || undefined) as never,
+        sourcedBy: (filters.sourcedBy || undefined) as never,
+        screenOutReason: filters.screenOutReason || undefined,
         clientVisible: filters.clientVisible,
         shortlisted: "all",
       },
