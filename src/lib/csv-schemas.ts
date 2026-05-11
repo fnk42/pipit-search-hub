@@ -189,9 +189,20 @@ function aliasDate(v: unknown): unknown {
   return Number.isFinite(d.getTime()) ? d.toISOString().slice(0, 10) : undefined;
 }
 
+// Lenient email: accept anything, drop invalid silently. Picks first valid address if multiple are jammed in one cell.
+const lenientEmail = z.preprocess((v) => {
+  if (v == null) return undefined;
+  const s = String(v).trim();
+  if (!s) return undefined;
+  const candidates = s.split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean);
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const hit = candidates.find((c) => emailRe.test(c));
+  return hit ? hit.toLowerCase() : undefined;
+}, z.string().email().optional());
+
 export const candidateRowSchema = z.object({
   name: z.string().trim().min(1, "Name required").max(120),
-  email: optStr.pipe(z.string().email().optional() as never).or(z.undefined()).optional(),
+  email: lenientEmail,
   phone: optStr,
   current_firm: optStr,
   current_title: optStr,
