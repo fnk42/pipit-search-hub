@@ -1,7 +1,10 @@
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { PIPELINE_STAGES, LOCATION_BUCKETS, IR_FUNCTIONS } from "@/lib/csv-schemas";
+import {
+  PIPELINE_STAGES, LOCATION_BUCKETS, IR_FUNCTIONS,
+  OWNERS, SOURCED_BY_OPTIONS, SCREEN_OUT_REASONS,
+} from "@/lib/csv-schemas";
 import { Search, X } from "lucide-react";
 
 export type Filters = {
@@ -9,17 +12,25 @@ export type Filters = {
   stage: string;
   location: string;
   irFunction: string;
+  owner: string;
+  sourcedBy: string;
+  screenOutReason: string;
   clientVisible: "yes" | "no" | "all";
 };
 
-export const defaultFilters: Filters = { search: "", stage: "", location: "", irFunction: "", clientVisible: "all" };
+export const defaultFilters: Filters = {
+  search: "", stage: "", location: "", irFunction: "",
+  owner: "", sourcedBy: "", screenOutReason: "",
+  clientVisible: "all",
+};
 
 const ANY = "__any__";
 
 export function CandidateFilters({
   value, onChange, role,
 }: { value: Filters; onChange: (v: Filters) => void; role: "recruiter" | "client" }) {
-  const has = value.search || value.stage || value.location || value.irFunction || value.clientVisible !== "all";
+  const has = value.search || value.stage || value.location || value.irFunction
+    || value.owner || value.sourcedBy || value.screenOutReason || value.clientVisible !== "all";
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-3 shadow-[var(--shadow-soft)]">
@@ -36,14 +47,19 @@ export function CandidateFilters({
       <FilterSelect placeholder="Location" value={value.location} options={LOCATION_BUCKETS} onChange={(v) => onChange({ ...value, location: v })} />
       <FilterSelect placeholder="IR function" value={value.irFunction} options={IR_FUNCTIONS} onChange={(v) => onChange({ ...value, irFunction: v })} />
       {role === "recruiter" && (
-        <Select value={value.clientVisible} onValueChange={(v) => onChange({ ...value, clientVisible: v as Filters["clientVisible"] })}>
-          <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All visibility</SelectItem>
-            <SelectItem value="yes">Client visible</SelectItem>
-            <SelectItem value="no">Internal only</SelectItem>
-          </SelectContent>
-        </Select>
+        <>
+          <FilterSelect placeholder="Owner" value={value.owner} options={OWNERS} onChange={(v) => onChange({ ...value, owner: v })} />
+          <FilterSelect placeholder="Sourced by" value={value.sourcedBy} options={SOURCED_BY_OPTIONS} onChange={(v) => onChange({ ...value, sourcedBy: v })} />
+          <FilterSelect placeholder="Screen out reason" value={value.screenOutReason} options={SCREEN_OUT_REASONS} onChange={(v) => onChange({ ...value, screenOutReason: v })} />
+          <Select value={value.clientVisible} onValueChange={(v) => onChange({ ...value, clientVisible: v as Filters["clientVisible"] })}>
+            <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All visibility</SelectItem>
+              <SelectItem value="yes">Client visible</SelectItem>
+              <SelectItem value="no">Internal only</SelectItem>
+            </SelectContent>
+          </Select>
+        </>
       )}
       {has && (
         <Button variant="ghost" size="sm" onClick={() => onChange(defaultFilters)}>
@@ -57,7 +73,7 @@ export function CandidateFilters({
 function FilterSelect({ placeholder, value, options, onChange }: { placeholder: string; value: string; options: readonly string[]; onChange: (v: string) => void }) {
   return (
     <Select value={value || ANY} onValueChange={(v) => onChange(v === ANY ? "" : v)}>
-      <SelectTrigger className="h-9 w-[140px]"><SelectValue placeholder={placeholder} /></SelectTrigger>
+      <SelectTrigger className="h-9 w-[160px]"><SelectValue placeholder={placeholder} /></SelectTrigger>
       <SelectContent>
         <SelectItem value={ANY}>All {placeholder.toLowerCase()}</SelectItem>
         {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}

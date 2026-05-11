@@ -9,7 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { PIPELINE_STAGES, LOCATION_BUCKETS, IR_FUNCTIONS } from "@/lib/csv-schemas";
+import {
+  PIPELINE_STAGES, LOCATION_BUCKETS, IR_FUNCTIONS, REJECTED_STAGES,
+  OWNERS, SOURCED_BY_OPTIONS, SCREEN_OUT_REASONS,
+} from "@/lib/csv-schemas";
 import { X } from "lucide-react";
 
 const schema = z.object({
@@ -21,17 +24,20 @@ const schema = z.object({
   pipeline_stage: z.enum(PIPELINE_STAGES),
   location_bucket: z.enum([...LOCATION_BUCKETS, "" as const]).optional(),
   ir_functions: z.array(z.enum(IR_FUNCTIONS)),
-  source: z.string().max(200).optional(),
+  sourced_by: z.enum(SOURCED_BY_OPTIONS),
+  owner: z.enum([...OWNERS, "" as const]).optional(),
+  screen_out_reason: z.enum([...SCREEN_OUT_REASONS, "" as const]).optional(),
+  feedback_transformari: z.string().max(10000).optional(),
   linkedin_url: z.string().max(500).optional(),
   notes: z.string().max(10000).optional(),
-  next_action: z.string().max(500).optional(),
-  next_action_date: z.string().optional(),
-  last_contact_date: z.string().optional(),
+  date_sourced: z.string().optional(),
   client_visible: z.boolean(),
   shortlisted: z.boolean().optional(),
 });
 
 export type CandidateFormValues = z.infer<typeof schema>;
+
+const REJ_SET = new Set<string>(REJECTED_STAGES);
 
 export function CandidateForm({
   defaultValues,
@@ -49,6 +55,7 @@ export function CandidateForm({
     defaultValues: {
       name: "",
       pipeline_stage: "Sourced",
+      sourced_by: "GPR Team",
       ir_functions: [],
       client_visible: false,
       shortlisted: false,
@@ -57,6 +64,8 @@ export function CandidateForm({
   });
   const [submitting, setSubmitting] = useState(false);
   const irFunctions = form.watch("ir_functions") ?? [];
+  const stage = form.watch("pipeline_stage");
+  const isRejected = REJ_SET.has(stage);
 
   const toggleIr = (fn: (typeof IR_FUNCTIONS)[number]) => {
     const next = irFunctions.includes(fn) ? irFunctions.filter((f) => f !== fn) : [...irFunctions, fn];
@@ -67,8 +76,14 @@ export function CandidateForm({
     <form
       onSubmit={form.handleSubmit(async (v) => {
         setSubmitting(true);
-        try { await onSubmit({ ...v, location_bucket: (v.location_bucket || undefined) as never }); }
-        finally { setSubmitting(false); }
+        try {
+          await onSubmit({
+            ...v,
+            location_bucket: (v.location_bucket || undefined) as never,
+            owner: (v.owner || undefined) as never,
+            screen_out_reason: (isRejected ? v.screen_out_reason || undefined : undefined) as never,
+          });
+        } finally { setSubmitting(false); }
       })}
       className="space-y-5"
     >
@@ -76,7 +91,7 @@ export function CandidateForm({
         <Field label="Name" required error={form.formState.errors.name?.message}>
           <Input {...form.register("name")} />
         </Field>
-        <Field label="Pipeline stage" required>
+        <Field label="Candidate status" required>
           <Select
             value={form.watch("pipeline_stage")}
             onValueChange={(v) => form.setValue("pipeline_stage", v as never, { shouldDirty: true })}
@@ -103,11 +118,43 @@ export function CandidateForm({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Source"><Input {...form.register("source")} /></Field>
+          <Field label="Owner">
+            <Select
+              value={form.watch("owner") || ""}
+              onValueChange={(v) => form.setValue("owner", (v || undefined) as never, { shouldDirty: true })}
+            >
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                {OWNERS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Sourced by">
+            <Select
+              value={form.watch("sourced_by")}
+              onValueChange={(v) => form.setValue("sourced_by", v as never, { shouldDirty: true })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {SOURCED_BY_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
           <Field label="LinkedIn URL"><Input {...form.register("linkedin_url")} /></Field>
-          <Field label="Last contact"><Input type="date" {...form.register("last_contact_date")} /></Field>
-          <Field label="Next action"><Input {...form.register("next_action")} /></Field>
-          <Field label="Next action date"><Input type="date" {...form.register("next_action_date")} /></Field>
+          <Field label="Sourced date"><Input type="date" {...form.register("date_sourced")} /></Field>
+          {isRejected && (
+            <Field label="Screen out reason">
+              <Select
+                value={form.watch("screen_out_reason") || ""}
+                onValueChange={(v) => form.setValue("screen_out_reason", (v || undefined) as never, { shouldDirty: true })}
+              >
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  {SCREEN_OUT_REASONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
         </>}
       </div>
 
@@ -119,7 +166,7 @@ export function CandidateForm({
               return (
                 <button
                   type="button" key={fn} onClick={() => toggleIr(fn)}
-                  className={`text-xs rounded-full px-3 py-1 border transition ${active ? "bg-primary text-primary-foreground border-primary" : "bg-background text-foreground border-border hover:border-primary/40"}`}
+                  className={`text-xs rounded-full px-3 py-1 border transition ${active ? "bg-accent text-accent-foreground border-accent" : "bg-background text-foreground border-border hover:border-accent/40"}`}
                 >
                   {fn}
                   {active && <X className="inline h-3 w-3 ml-1" />}
@@ -131,7 +178,13 @@ export function CandidateForm({
       )}
 
       {!compact && (
-        <Field label="Notes"><Textarea rows={5} {...form.register("notes")} /></Field>
+        <Field label="Feedback (Transformari)">
+          <Textarea rows={4} {...form.register("feedback_transformari")} placeholder="Internal feedback from Transformari…" />
+        </Field>
+      )}
+
+      {!compact && (
+        <Field label="Notes"><Textarea rows={4} {...form.register("notes")} /></Field>
       )}
 
       <div className="space-y-2">

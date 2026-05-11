@@ -53,6 +53,7 @@ export type Database = {
           current_title: string | null
           date_sourced: string | null
           email: string | null
+          feedback_transformari: string | null
           id: string
           ir_functions: Database["public"]["Enums"]["ir_function"][]
           last_contact_date: string | null
@@ -62,10 +63,13 @@ export type Database = {
           next_action: string | null
           next_action_date: string | null
           notes: string | null
+          owner: string | null
           phone: string | null
           pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]
+          screen_out_reason: string | null
           shortlisted: boolean
           source: string | null
+          sourced_by: string
           updated_at: string
         }
         Insert: {
@@ -76,6 +80,7 @@ export type Database = {
           current_title?: string | null
           date_sourced?: string | null
           email?: string | null
+          feedback_transformari?: string | null
           id?: string
           ir_functions?: Database["public"]["Enums"]["ir_function"][]
           last_contact_date?: string | null
@@ -87,10 +92,13 @@ export type Database = {
           next_action?: string | null
           next_action_date?: string | null
           notes?: string | null
+          owner?: string | null
           phone?: string | null
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
+          screen_out_reason?: string | null
           shortlisted?: boolean
           source?: string | null
+          sourced_by?: string
           updated_at?: string
         }
         Update: {
@@ -101,6 +109,7 @@ export type Database = {
           current_title?: string | null
           date_sourced?: string | null
           email?: string | null
+          feedback_transformari?: string | null
           id?: string
           ir_functions?: Database["public"]["Enums"]["ir_function"][]
           last_contact_date?: string | null
@@ -112,10 +121,13 @@ export type Database = {
           next_action?: string | null
           next_action_date?: string | null
           notes?: string | null
+          owner?: string | null
           phone?: string | null
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
+          screen_out_reason?: string | null
           shortlisted?: boolean
           source?: string | null
+          sourced_by?: string
           updated_at?: string
         }
         Relationships: []
@@ -216,12 +228,7 @@ export type Database = {
     }
     Enums: {
       app_role: "recruiter" | "client"
-      ir_function:
-        | "Capital Raising"
-        | "LP Relations"
-        | "Reporting & Analytics"
-        | "Marketing & Comms"
-        | "Strategy"
+      ir_function: "Fundraising/BD" | "Client Services/LP Reporting" | "Unclear"
       location_bucket:
         | "Florida"
         | "Texas"
@@ -237,14 +244,21 @@ export type Database = {
       pe_tier: "Tier 1" | "Tier 2" | "Tier 3"
       pipeline_stage:
         | "Sourced"
-        | "Contacted"
-        | "Engaged"
-        | "Screening"
-        | "Client Interview"
+        | "For Sean - Please reach out"
+        | "Reached Out"
+        | "Reached Out-Referral"
+        | "Responded/Scheduled for Screening"
+        | "Profile Screened by Sam"
+        | "Profile Screened by Stephanie"
+        | "Initial Screening (Sam/Stephanie)"
+        | "Final Screening (Sean)"
+        | "Client Interviews"
         | "Offer"
         | "Placed"
-        | "Declined"
-        | "Passed"
+        | "Rejected by Candidate"
+        | "Rejected by Transformari"
+        | "Rejected by Client"
+        | "Rejected by GPR (Felix)"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -374,11 +388,9 @@ export const Constants = {
     Enums: {
       app_role: ["recruiter", "client"],
       ir_function: [
-        "Capital Raising",
-        "LP Relations",
-        "Reporting & Analytics",
-        "Marketing & Comms",
-        "Strategy",
+        "Fundraising/BD",
+        "Client Services/LP Reporting",
+        "Unclear",
       ],
       location_bucket: [
         "Florida",
@@ -397,14 +409,21 @@ export const Constants = {
       pe_tier: ["Tier 1", "Tier 2", "Tier 3"],
       pipeline_stage: [
         "Sourced",
-        "Contacted",
-        "Engaged",
-        "Screening",
-        "Client Interview",
+        "For Sean - Please reach out",
+        "Reached Out",
+        "Reached Out-Referral",
+        "Responded/Scheduled for Screening",
+        "Profile Screened by Sam",
+        "Profile Screened by Stephanie",
+        "Initial Screening (Sam/Stephanie)",
+        "Final Screening (Sean)",
+        "Client Interviews",
         "Offer",
         "Placed",
-        "Declined",
-        "Passed",
+        "Rejected by Candidate",
+        "Rejected by Transformari",
+        "Rejected by Client",
+        "Rejected by GPR (Felix)",
       ],
     },
   },
