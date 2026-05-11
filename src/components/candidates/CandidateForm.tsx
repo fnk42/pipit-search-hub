@@ -185,6 +185,12 @@ export function CandidateForm({
       )}
 
       {!compact && (
+        <Field label="FNK Comments">
+          <Textarea rows={4} {...form.register("fnk_comments")} placeholder="Internal FNK comments…" />
+        </Field>
+      )}
+
+      {!compact && (
         <Field label="Notes"><Textarea rows={4} {...form.register("notes")} /></Field>
       )}
 
