@@ -214,6 +214,7 @@ export const candidateRowSchema = z.object({
   owner: z.preprocess(aliasOwner, z.enum(OWNERS).optional()),
   screen_out_reason: optStr,
   feedback_transformari: optStr,
+  fnk_comments: optStr,
   linkedin_url: optStr,
   notes: optStr,
   date_sourced: z.preprocess(aliasDate, z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
