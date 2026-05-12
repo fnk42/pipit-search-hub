@@ -3,7 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import {
   PIPELINE_STAGES, LOCATION_BUCKETS, IR_FUNCTIONS,
-  OWNERS, SOURCED_BY_OPTIONS, SCREEN_OUT_REASONS,
+  OWNERS, SOURCED_BY_OPTIONS, SCREEN_OUT_REASONS, CANDIDATE_FITS,
 } from "@/lib/csv-schemas";
 import { Search, X } from "lucide-react";
 
@@ -15,13 +15,13 @@ export type Filters = {
   owner: string;
   sourcedBy: string;
   screenOutReason: string;
-  seniority: string;
+  fit: string;
   clientVisible: "yes" | "no" | "all";
 };
 
 export const defaultFilters: Filters = {
   search: "", stage: "", location: "", irFunction: "",
-  owner: "", sourcedBy: "", screenOutReason: "", seniority: "",
+  owner: "", sourcedBy: "", screenOutReason: "", fit: "",
   clientVisible: "all",
 };
 
@@ -31,13 +31,7 @@ export function CandidateFilters({
   value, onChange, role,
 }: { value: Filters; onChange: (v: Filters) => void; role: "recruiter" | "client" }) {
   const has = value.search || value.stage || value.location || value.irFunction
-    || value.owner || value.sourcedBy || value.screenOutReason || value.seniority || value.clientVisible !== "all";
-
-  const SENIORITY_LABEL: Record<string, string> = {
-    vp: "VP / SVP / EVP",
-    seniorAssociate: "Senior Associate",
-    tooSenior: "Too senior",
-  };
+    || value.owner || value.sourcedBy || value.screenOutReason || value.fit || value.clientVisible !== "all";
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-3 shadow-[var(--shadow-soft)]">
@@ -51,6 +45,7 @@ export function CandidateFilters({
         />
       </div>
       <FilterSelect placeholder="Stage" value={value.stage} options={PIPELINE_STAGES} onChange={(v) => onChange({ ...value, stage: v })} />
+      <FilterSelect placeholder="Fit" value={value.fit} options={CANDIDATE_FITS} onChange={(v) => onChange({ ...value, fit: v })} />
       <FilterSelect placeholder="Location" value={value.location} options={LOCATION_BUCKETS} onChange={(v) => onChange({ ...value, location: v })} />
       <FilterSelect placeholder="IR function" value={value.irFunction} options={IR_FUNCTIONS} onChange={(v) => onChange({ ...value, irFunction: v })} />
       {role === "recruiter" && (
@@ -67,19 +62,6 @@ export function CandidateFilters({
             </SelectContent>
           </Select>
         </>
-      )}
-      {value.seniority && (
-        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs">
-          Seniority: {SENIORITY_LABEL[value.seniority] ?? value.seniority}
-          <button
-            type="button"
-            className="ml-0.5 text-muted-foreground hover:text-foreground"
-            onClick={() => onChange({ ...value, seniority: "" })}
-            aria-label="Clear seniority filter"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </span>
       )}
       {has && (
         <Button variant="ghost" size="sm" onClick={() => onChange(defaultFilters)}>

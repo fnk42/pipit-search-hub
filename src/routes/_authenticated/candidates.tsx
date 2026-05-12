@@ -2,20 +2,22 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listCandidates, setShortlist } from "@/lib/candidates.functions";
+import { listCandidates, setFit } from "@/lib/candidates.functions";
 import { useAuth } from "@/lib/auth-context";
 import { CandidatesTable } from "@/components/candidates/CandidatesTable";
 import { CandidateFilters, defaultFilters, type Filters } from "@/components/candidates/CandidateFilters";
 import { AddCandidateDialog } from "@/components/candidates/AddCandidateDialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, Star, StarOff, X } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Upload, Star, X, ChevronDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CANDIDATE_FITS, type CandidateFit } from "@/lib/csv-schemas";
 import { toast } from "sonner";
 
 type CandidatesSearch = {
   stage?: string; location?: string; irFunction?: string; search?: string;
-  owner?: string; sourcedBy?: string; screenOutReason?: string; seniority?: string;
+  owner?: string; sourcedBy?: string; screenOutReason?: string; fit?: string;
 };
 
 export const Route = createFileRoute("/_authenticated/candidates")({
@@ -27,7 +29,7 @@ export const Route = createFileRoute("/_authenticated/candidates")({
     owner: typeof raw.owner === "string" ? raw.owner : undefined,
     sourcedBy: typeof raw.sourcedBy === "string" ? raw.sourcedBy : undefined,
     screenOutReason: typeof raw.screenOutReason === "string" ? raw.screenOutReason : undefined,
-    seniority: typeof raw.seniority === "string" && ["vp","seniorAssociate","tooSenior"].includes(raw.seniority) ? raw.seniority : undefined,
+    fit: typeof raw.fit === "string" && (CANDIDATE_FITS as readonly string[]).includes(raw.fit) ? raw.fit : undefined,
   }),
   component: CandidatesPage,
 });
@@ -49,7 +51,7 @@ function CandidatesPage() {
     owner: search.owner ?? "",
     sourcedBy: search.sourcedBy ?? "",
     screenOutReason: search.screenOutReason ?? "",
-    seniority: search.seniority ?? "",
+    fit: search.fit ?? "",
   }));
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const qc = useQueryClient();
@@ -64,9 +66,9 @@ function CandidatesPage() {
       owner: search.owner ?? "",
       sourcedBy: search.sourcedBy ?? "",
       screenOutReason: search.screenOutReason ?? "",
-      seniority: search.seniority ?? "",
+      fit: search.fit ?? "",
     }));
-  }, [search.search, search.stage, search.location, search.irFunction, search.owner, search.sourcedBy, search.screenOutReason, search.seniority]);
+  }, [search.search, search.stage, search.location, search.irFunction, search.owner, search.sourcedBy, search.screenOutReason, search.fit]);
 
   const handleFiltersChange = (next: Filters) => {
     setFilters(next);
@@ -79,14 +81,14 @@ function CandidatesPage() {
         owner: next.owner || undefined,
         sourcedBy: next.sourcedBy || undefined,
         screenOutReason: next.screenOutReason || undefined,
-        seniority: next.seniority || undefined,
+        fit: next.fit || undefined,
       },
       replace: true,
     });
   };
 
   const list = useServerFn(listCandidates);
-  const shortlistFn = useServerFn(setShortlist);
+  const setFitFn = useServerFn(setFit);
 
   const { data, isLoading } = useQuery({
     queryKey: ["candidates", filters],
@@ -99,26 +101,26 @@ function CandidatesPage() {
         owner: (filters.owner || undefined) as never,
         sourcedBy: (filters.sourcedBy || undefined) as never,
         screenOutReason: filters.screenOutReason || undefined,
-        seniority: (filters.seniority || undefined) as never,
+        fit: (filters.fit || undefined) as never,
         clientVisible: filters.clientVisible,
         shortlisted: "all",
       },
     }),
   });
 
-  const allRows = (data ?? []) as Array<{ id: string; shortlisted: boolean } & Record<string, unknown>>;
-  const shortlistedCount = useMemo(() => allRows.filter((c) => c.shortlisted).length, [allRows]);
+  const allRows = (data ?? []) as Array<{ id: string; fit: CandidateFit; shortlisted: boolean } & Record<string, unknown>>;
+  const shortlistedCount = useMemo(() => allRows.filter((c) => c.fit === "Target Fit").length, [allRows]);
   const visibleRows = useMemo(
-    () => (isRecruiter && tab === "shortlist" ? allRows.filter((c) => c.shortlisted) : allRows),
+    () => (isRecruiter && tab === "shortlist" ? allRows.filter((c) => c.fit === "Target Fit") : allRows),
     [allRows, tab, isRecruiter],
   );
 
   const bulkMut = useMutation({
-    mutationFn: (shortlisted: boolean) =>
-      shortlistFn({ data: { ids: Array.from(selected), shortlisted } }),
-    onSuccess: (_res, shortlisted) => {
+    mutationFn: (fit: CandidateFit) =>
+      setFitFn({ data: { ids: Array.from(selected), fit } }),
+    onSuccess: (_res, fit) => {
       qc.invalidateQueries({ queryKey: ["candidates"] });
-      toast.success(`${selected.size} ${shortlisted ? "added to" : "removed from"} shortlist`);
+      toast.success(`${selected.size} updated to "${fit}"`);
       setSelected(new Set());
     },
     onError: (e: Error) => toast.error(e.message),
@@ -185,12 +187,18 @@ function CandidatesPage() {
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 shadow-[var(--shadow-card)]">
           <span className="text-sm font-medium">{selected.size} selected</span>
           <span className="h-4 w-px bg-border mx-1" />
-          <Button size="sm" variant="outline" onClick={() => bulkMut.mutate(true)} disabled={bulkMut.isPending}>
-            <Star className="h-3.5 w-3.5 mr-1.5" /> Add to shortlist
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => bulkMut.mutate(false)} disabled={bulkMut.isPending}>
-            <StarOff className="h-3.5 w-3.5 mr-1.5" /> Remove
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" disabled={bulkMut.isPending}>
+                Set fit <ChevronDown className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {CANDIDATE_FITS.map((f) => (
+                <DropdownMenuItem key={f} onClick={() => bulkMut.mutate(f)}>{f}</DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
             <X className="h-3.5 w-3.5" />
           </Button>
