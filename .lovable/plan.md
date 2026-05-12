@@ -1,63 +1,113 @@
-# Implementation plan
+## Untitled UI redesign — candidate tracker
 
-## 1. Typography (CandidatesTable.tsx)
-- Title (now in Name cell sub-line) and Company (new column) render at exactly `fontSize: '8px'`, `lineHeight: '12px'`.
+A full visual overhaul of the candidates page (table, filters, tabs, badges) and the dashboard's State Breakdown chart, using Untitled UI tokens. Strictly visual + minor structural fixes — no DB or business-logic changes (except the existing seniority math, which is already correct).
 
-## 2. Spreadsheet-style auto-sizing (CandidatesTable.tsx)
-- Drop fixed `w-[..px]` widths on `<TableHead>` / `<TableCell>` (except sticky checkbox).
-- Add `whitespace-nowrap` to header cells and to short-content data cells (Stage, Fit, Location, Screen-out reason, Visible, Delete).
-- Set table `w-auto min-w-full` so columns shrink to content; existing top/bottom synced scrollbar stays as a safety net for long firm names.
+### 1. Design tokens (`src/styles.css`)
 
-## 3. Name column cleanup (CandidatesTable.tsx)
-- Remove the inner `min-w-0` + redundant `overflow-hidden` wrappers that cause the visible gap/overlay.
-- Replace the sticky `shadow-[2px_0_4px_-2px_...]` with a crisp `border-r border-border`.
-- Tighten cell padding to `py-1 pr-3` on the Name cell.
+Add Untitled UI palette as CSS variables alongside the existing tokens (don't rip out the existing parchment theme; new tokens are additive and used only by candidate views):
 
-## 4. Inline-editable everywhere (CandidatesTable.tsx)
-After steps 5 + 9 the live recruiter cells are: **Name, Title, Company, Stage, Fit, Location, Screen-out reason**. Each renders an `EditableText` / `EditableSelect` (Fit already does). Confirm + apply the wrapper cleanup from step 3 — no new component needed.
-
-## 5. Remove Owner / Sourced by / Sourced date columns
-Touched: `CandidatesTable.tsx`, `CandidateFilters.tsx`, `routes/_authenticated/candidates.tsx`.
-- Delete the three `<TableHead>` and `<TableCell>` blocks.
-- Drop unused `OWNERS` / `SOURCED_BY_OPTIONS` imports from the table.
-- Remove `owner`, `sourcedBy` from filter UI, `defaultFilters`, `validateSearch`, and the `listCandidates` call site.
-- DB columns stay (no migration), data preserved.
-
-## 6. Reconcile Metrics totals (dashboard.functions.ts, Dashboard.tsx)
-Redefine seniority so **VP + Senior Associate + Other = Master list total**.
-- Server: classify each master-list candidate (everyone except `pipeline_stage = 'Placed'`) into exactly one bucket using `current_title`:
-  1. `vp` → `/\b(vp|svp|evp|vice president)\b/i`
-  2. `seniorAssociate` → `/\b(senior associate|sr\.? associate)\b/i`
-  3. `other` → everything else (too-senior, junior, unmapped, missing title)
-- Return `{ vp, seniorAssociate, other, total: masterTotal }`.
-- UI: render four tiles — Total, VP, Senior Associate, Other. Total mirrors `masterTotal` so they always reconcile.
-
-## 7. Working seniority filter end-to-end
-- Add `seniority?: 'vp' | 'seniorAssociate' | 'other'` to `validateSearch` in `routes/_authenticated/candidates.tsx`.
-- Apply a client-side filter in `CandidatesPage` on `current_title` using the same regex precedence as the server (Postgres regex on free text is awkward; client-side filter on the master list is correct here).
-- When `search.seniority` is set, show a dismissible chip: `Filtered: VP × Clear` that clears the param.
-- `SeniorityRow` tile clicks navigate with the matching `seniority` value; the **Total** tile navigates to `/candidates` with no params (clears all filters).
-
-## 8. Geography / state breakdown chart colors (Dashboard.tsx)
-Replace the single `fill="var(--metric-sky)"` on the `BarChart` with per-bar `<Cell>` elements using:
 ```
-['#1e3a5f', '#d4a017', '#5b8c5a', '#c0392b', '#7d3c98']
+--uui-bg:        #FFFFFF;
+--uui-row-hover: #F9FAFB;
+--uui-header-bg: #F9FAFB;
+--uui-border:    #EAECF0;
+--uui-text:      #101828;
+--uui-text-2:    #475467;
+--uui-text-3:    #667085;
+--uui-input-border: #D0D5DD;
+--uui-blue-600:  #1570EF;
+--uui-blue-50:   #EFF8FF;
+--uui-blue-100:  #E0EAFF;
+--uui-focus-ring: 0 0 0 4px #E0EAFF;
+/* badge tones: red, amber, green, blue, neutral as listed in prompt */
 ```
-Mapped 1:1 to Florida, Texas, Tri-State, Other US, International. Click-to-filter unchanged.
 
-## 9. New Company column (CandidatesTable.tsx) — *added per latest request*
-- Strip `· {firm}` from the Name cell's second line; that line keeps **only the title**, still at 8px.
-- Insert a new **Company** column immediately after Name with `EditableText` bound to `current_firm`, also rendered at 8px to match Title (visually paired).
-- Mobile cards: keep showing `title · firm` underneath the name (single compact line), so mobile layout is unchanged.
-- Filtering, search (`name,current_firm,email`), and the `current_firm` field on the server are unchanged.
+Import Inter from Google Fonts in `index.html` (or via `@import` at top of styles.css). `--font-sans` already targets Inter.
 
----
+### 2. Tabs — Untitled UI underline style
 
-## Files touched
-- `src/components/candidates/CandidatesTable.tsx` (1, 2, 3, 4, 5, 9)
-- `src/components/candidates/CandidateFilters.tsx` (5)
-- `src/routes/_authenticated/candidates.tsx` (5, 7)
-- `src/lib/dashboard.functions.ts` (6)
-- `src/components/dashboard/Dashboard.tsx` (6, 7, 8)
+Replace the boxed shadcn `TabsList` on the candidates page with a custom underline tab bar:
+- Container: `border-b border-[--uui-border]`
+- Each tab: `px-1 pb-3 -mb-px text-sm font-semibold`
+- Active: `text-[--uui-blue-600] border-b-2 border-[--uui-blue-600]`
+- Inactive: `text-[--uui-text-3] border-b-2 border-transparent hover:text-[--uui-text]`
+- Counts inline in same color, no separate badge
 
-No DB migration. No server-function signature changes beyond the dashboard return shape.
+Implemented inline in `candidates.tsx` (don't touch shared `tabs.tsx`).
+
+### 3. Filter bar (`CandidateFilters.tsx`)
+
+- Container: `flex flex-wrap gap-3 bg-white border-[--uui-border] rounded-lg p-3` (or remove card chrome entirely — use plain row).
+- Search input: `h-10 rounded-lg border-[--uui-input-border] pl-10 text-sm` with 20px `Search` icon at left, color `--uui-text-3`. Focus: blue border + 4px halo.
+- Dropdowns: same `h-10 rounded-lg border-[--uui-input-border]` triggers; widen to `min-w-[160px]`. Override shadcn `SelectTrigger` className locally.
+- Wrap to next line on small screens (already does).
+
+### 4. Table — `CandidatesTable.tsx`
+
+**Column structure** (single source of truth — strip current sticky/8px Title column):
+
+| # | Column | Min width | Notes |
+|---|--------|-----------|-------|
+| 1 | Checkbox | 44px | recruiter only |
+| 2 | Name | 200px | name + external link icon ONLY (no star, no title overlay) |
+| 3 | Company | 180px | `current_firm`, secondary text |
+| 4 | Stage | 200px | badge |
+| 5 | Fit | 120px | badge |
+| 6 | Location | 120px | text |
+| 7 | Screen out reason | 220px | truncate w/ tooltip, recruiter only |
+| 8 | Visible | 60px | eye toggle, recruiter only |
+| 9 | Delete | 44px | trash icon, recruiter only |
+
+**Removed**: separate Title column (8px), Owner, Sourced By, Sourced Date, Star icon in Name cell, sticky-left positioning. The "Title" data is dropped from the table view (still editable via candidate detail page).
+
+**Header row**: `bg-[--uui-header-bg] border-b border-[--uui-border]`; `<th>` text `text-[11px] font-medium uppercase tracking-[0.05em] text-[--uui-text-2] px-3 py-3`.
+
+**Body rows**: `h-[52px] border-b border-[--uui-border] hover:bg-[--uui-row-hover]`. Cells `px-3 py-3 align-middle text-sm`. Name = `font-medium text-[--uui-text]`; Company/Location/Screen = `text-[--uui-text-2] font-normal`.
+
+**Name cell fix**: render only `<a>{name} <ExternalLink/></a>` (or `<Link>` if no LinkedIn). Remove the `flex items-center gap-1.5` Star wrapper. The Target Fit star indicator moves to the **Fit** badge column (kept inline with the badge as a small leading icon) so the Name column has zero extra elements.
+
+**Checkbox**: shadcn `Checkbox` already 16x16; pass className for `border-[--uui-input-border] rounded` to match.
+
+**Auto-stretch**: drop `w-auto min-w-full` and `whitespace-nowrap` on long-text cells; use `table-fixed` with explicit `<colgroup>` setting min widths above. At ≥1280px the table fills horizontally without scroll.
+
+**Inline edit affordance** (item 10): update `EditableCell.tsx` Input/Select trigger className: when editing, apply `border-[--uui-blue-600] shadow-[var(--uui-focus-ring)]`. Behavior (Enter save / Esc cancel / blur save) already correct.
+
+### 5. Badges — soft-tint Untitled UI
+
+Rewrite `StageBadge.tsx` tone map to:
+- Red (Rejected by Transformari): `bg-[#FEF3F2] text-[#B42318] border-[#FECDCA]`
+- Amber (Rejected by Candidate, In Progress alt): `bg-[#FFFAEB] text-[#B54708] border-[#FEDF89]`
+- Green (Approved/Shortlisted/Placed/Reached Out variants): `bg-[#ECFDF3] text-[#067647] border-[#ABEFC6]`
+- Blue (Screening/In Progress): `bg-[#EFF8FF] text-[#175CD3] border-[#B2DDFF]`
+- Neutral (Sourced/Unassessed/default): `bg-[#F2F4F7] text-[#344054] border-[#EAECF0]`
+
+Badge shape: `inline-flex items-center px-2 py-0.5 rounded-md border text-xs font-medium`. Replace the current pill (`rounded-full`, oklch fills).
+
+Update `FIT_CLASS` in `CandidatesTable.tsx` similarly: Target Fit → green soft tint with leading 12px star; others → neutral.
+
+### 6. Dashboard — State Breakdown bars
+
+In `Dashboard.tsx` `StatCardsRow` Geography chart, swap palette to `["#1570EF", "#B54708", "#067647", "#7A5AF8", "#E31B54"]` and set `<Bar radius={[4,4,0,0]}>`. (No other dashboard changes.)
+
+### 7. Items already satisfied — no further work
+
+- VP + Senior Associate + Other = Total (already enforced server-side, item 11 only re-asserts existing behavior).
+- Seniority filter chip + Total clear (already implemented in `candidates.tsx`).
+- Inline editing exists; only the focus ring styling is updated (item 10 above).
+
+### Files touched
+
+- `src/styles.css` — add Untitled UI tokens + Inter import
+- `src/components/candidates/CandidatesTable.tsx` — column overhaul, Name cell cleanup, Untitled UI styling, FIT_CLASS rewrite
+- `src/components/candidates/CandidateFilters.tsx` — input/select restyle
+- `src/components/candidates/StageBadge.tsx` — soft-tint tone map
+- `src/components/candidates/EditableCell.tsx` — focus ring on edit state
+- `src/routes/_authenticated/candidates.tsx` — underline tab bar
+- `src/components/dashboard/Dashboard.tsx` — Geography palette swap
+
+### Out of scope
+
+- No DB migrations
+- No changes to server functions, auth, or routing
+- No mobile-card redesign (keeps current layout — desktop overhaul only)
+- No changes to other dashboards/charts beyond Geography bars
