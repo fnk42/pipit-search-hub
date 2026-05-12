@@ -9,6 +9,7 @@ export type DashboardData = {
   searchInitiated: string | null;
   daysActive: number;
   candidatesInPipeline: number;
+  masterTotal: number;
   shortlistedCount: number;
   weekly: {
     addedToday: number;
