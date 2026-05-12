@@ -46,7 +46,7 @@ export const SCREEN_OUT_REASONS = [
   "Other",
 ] as const;
 
-export const PE_STATUSES = ["Target", "Contacted", "Sourced From", "Declined", "Not Relevant"] as const;
+export const PE_STATUSES = ["Not started", "Target", "Contacted", "Sourced From", "Searched--candidates added", "Searched--No IR identified", "Blocked--manual review needed", "Declined", "Not Relevant"] as const;
 export const PE_TIERS = ["Tier 1", "Tier 2", "Tier 3"] as const;
 
 export type PipelineStage = (typeof PIPELINE_STAGES)[number];
@@ -231,7 +231,7 @@ const optNum = z.preprocess((v) => {
 
 export const peFirmRowSchema = z.object({
   name: z.string().trim().min(1, "Name required").max(200),
-  status: z.preprocess((v) => (v ? String(v).trim() : "Target"), z.enum(PE_STATUSES)),
+  status: z.preprocess((v) => (v ? String(v).trim() : "Not started"), z.enum(PE_STATUSES)),
   aum_b: optNum,
   hq: optStr,
   location: optStr,

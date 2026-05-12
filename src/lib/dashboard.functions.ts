@@ -173,7 +173,7 @@ export const getDashboardData = createServerFn({ method: "GET" })
       const { count } = await supabase
         .from("pe_firms")
         .select("*", { count: "exact", head: true })
-        .in("status", ["Contacted", "Sourced From"]);
+        .in("status", ["Contacted", "Sourced From", "Searched--candidates added"]);
       peCoverage = { sourced: count ?? 0, total: TOTAL_PE_UNIVERSE };
 
       const { data: log } = await supabase

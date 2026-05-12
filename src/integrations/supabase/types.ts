@@ -265,6 +265,10 @@ export type Database = {
         | "Sourced From"
         | "Declined"
         | "Not Relevant"
+        | "Not started"
+        | "Searched--No IR identified"
+        | "Searched--candidates added"
+        | "Blocked--manual review needed"
       pe_tier: "Tier 1" | "Tier 2" | "Tier 3"
       pipeline_stage:
         | "Sourced"
@@ -429,6 +433,10 @@ export const Constants = {
         "Sourced From",
         "Declined",
         "Not Relevant",
+        "Not started",
+        "Searched--No IR identified",
+        "Searched--candidates added",
+        "Blocked--manual review needed",
       ],
       pe_tier: ["Tier 1", "Tier 2", "Tier 3"],
       pipeline_stage: [
