@@ -213,6 +213,7 @@ export const getDashboardData = createServerFn({ method: "GET" })
       searchInitiated,
       daysActive,
       candidatesInPipeline,
+      masterTotal,
       shortlistedCount,
       weekly: {
         addedToday,
