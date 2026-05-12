@@ -3,7 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import {
   PIPELINE_STAGES, LOCATION_BUCKETS, IR_FUNCTIONS,
-  OWNERS, SOURCED_BY_OPTIONS, SCREEN_OUT_REASONS, CANDIDATE_FITS,
+  SCREEN_OUT_REASONS, CANDIDATE_FITS,
 } from "@/lib/csv-schemas";
 import { Search, X } from "lucide-react";
 
@@ -12,8 +12,6 @@ export type Filters = {
   stage: string;
   location: string;
   irFunction: string;
-  owner: string;
-  sourcedBy: string;
   screenOutReason: string;
   fit: string;
   clientVisible: "yes" | "no" | "all";
@@ -21,7 +19,7 @@ export type Filters = {
 
 export const defaultFilters: Filters = {
   search: "", stage: "", location: "", irFunction: "",
-  owner: "", sourcedBy: "", screenOutReason: "", fit: "",
+  screenOutReason: "", fit: "",
   clientVisible: "all",
 };
 
@@ -31,7 +29,7 @@ export function CandidateFilters({
   value, onChange, role,
 }: { value: Filters; onChange: (v: Filters) => void; role: "recruiter" | "client" }) {
   const has = value.search || value.stage || value.location || value.irFunction
-    || value.owner || value.sourcedBy || value.screenOutReason || value.fit || value.clientVisible !== "all";
+    || value.screenOutReason || value.fit || value.clientVisible !== "all";
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-3 shadow-[var(--shadow-soft)]">
@@ -50,8 +48,6 @@ export function CandidateFilters({
       <FilterSelect placeholder="IR function" value={value.irFunction} options={IR_FUNCTIONS} onChange={(v) => onChange({ ...value, irFunction: v })} />
       {role === "recruiter" && (
         <>
-          <FilterSelect placeholder="Owner" value={value.owner} options={OWNERS} onChange={(v) => onChange({ ...value, owner: v })} />
-          <FilterSelect placeholder="Sourced by" value={value.sourcedBy} options={SOURCED_BY_OPTIONS} onChange={(v) => onChange({ ...value, sourcedBy: v })} />
           <FilterSelect placeholder="Screen out reason" value={value.screenOutReason} options={SCREEN_OUT_REASONS} onChange={(v) => onChange({ ...value, screenOutReason: v })} />
           <Select value={value.clientVisible} onValueChange={(v) => onChange({ ...value, clientVisible: v as Filters["clientVisible"] })}>
             <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
