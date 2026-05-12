@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Star, ExternalLink, FileText } from "lucide-react";
+import { Eye, EyeOff, Star, ExternalLink } from "lucide-react";
 import { StageBadge } from "./StageBadge";
 import { EditableText, EditableSelect, EditableDate } from "./EditableCell";
 import { updateCandidate, setShortlist } from "@/lib/candidates.functions";
@@ -123,9 +123,7 @@ export function CandidatesTable({
                 </TableHead>
               )}
               {isRecruiter && <TableHead className="w-10"></TableHead>}
-              <TableHead>Name</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead>Company</TableHead>
+              <TableHead className="min-w-[260px]">Name</TableHead>
               <TableHead>Stage</TableHead>
               <TableHead>Location</TableHead>
               {isRecruiter && <TableHead>Owner</TableHead>}
@@ -161,39 +159,47 @@ export function CandidatesTable({
                       </button>
                     </TableCell>
                   )}
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      {c.linkedin_url ? (
-                        <a
-                          href={c.linkedin_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="hover:text-accent inline-flex items-center gap-1"
-                        >
-                          {c.name}
-                          <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                        </a>
-                      ) : (
-                        <Link to="/candidates/$id" params={{ id: c.id }} className="hover:text-accent">{c.name}</Link>
-                      )}
-                      <Link
-                        to="/candidates/$id" params={{ id: c.id }}
-                        className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
-                        aria-label="Open candidate details" title="Open details"
-                      >
-                        <FileText className="h-3.5 w-3.5" />
-                      </Link>
+                  <TableCell className="font-medium min-w-[260px] align-top">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
+                        {c.linkedin_url ? (
+                          <a
+                            href={c.linkedin_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="hover:text-accent inline-flex items-center gap-1 text-sm"
+                          >
+                            {c.name}
+                            <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                          </a>
+                        ) : (
+                          <span className="text-sm">{c.name}</span>
+                        )}
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
+                        {isRecruiter ? (
+                          <>
+                            <EditableText
+                              value={c.current_title}
+                              onSave={(v) => patch(c.id, { current_title: v })}
+                              placeholder="title"
+                              className="text-xs"
+                            />
+                            <span>·</span>
+                            <EditableText
+                              value={c.current_firm}
+                              onSave={(v) => patch(c.id, { current_firm: v })}
+                              placeholder="company"
+                              className="text-xs"
+                            />
+                          </>
+                        ) : (
+                          <span className="truncate">
+                            {(c.current_title ?? "—")}{c.current_firm ? ` · ${c.current_firm}` : ""}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-foreground">
-                    {isRecruiter
-                      ? <EditableText value={c.current_title} onSave={(v) => patch(c.id, { current_title: v })} placeholder="—" />
-                      : (c.current_title ?? "—")}
-                  </TableCell>
-                  <TableCell className="text-sm text-foreground">
-                    {isRecruiter
-                      ? <EditableText value={c.current_firm} onSave={(v) => patch(c.id, { current_firm: v })} placeholder="—" />
-                      : (c.current_firm ?? "—")}
                   </TableCell>
                   <TableCell>
                     {isRecruiter ? (
