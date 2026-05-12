@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -177,8 +177,6 @@ export function PeFirmsTable({ rows }: { rows: Firm[] }) {
                 })}
               </TableBody>
             </Table>
-            </div>
-          </div>
         </div>
       )}
     </div>
