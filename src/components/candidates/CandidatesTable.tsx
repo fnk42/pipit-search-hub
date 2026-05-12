@@ -145,8 +145,7 @@ export function CandidatesTable({
                     <Checkbox checked={allSelected} onCheckedChange={() => onToggleAll?.()} aria-label="Select all" />
                   </TableHead>
                 )}
-                <TableHead className={`w-[180px] ${isRecruiter ? "sticky left-10 bg-card z-20" : "sticky left-0 bg-card z-20"}`}>Name</TableHead>
-                <TableHead className="w-[200px]">Title / Firm</TableHead>
+                <TableHead className={`w-[280px] ${isRecruiter ? "sticky left-10 bg-card z-20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]" : "sticky left-0 bg-card z-20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]"}`}>Name · Title / Firm</TableHead>
                 <TableHead className="w-[170px]">Stage</TableHead>
                 <TableHead className="w-[120px]">Fit</TableHead>
                 <TableHead className="w-[110px]">Location</TableHead>
@@ -172,34 +171,37 @@ export function CandidatesTable({
                         />
                       </TableCell>
                     )}
-                    <TableCell className={`font-medium align-middle w-[180px] max-w-[180px] ${isRecruiter ? "sticky left-10 bg-card z-10" : "sticky left-0 bg-card z-10"}`}>
-                      <div className="flex items-center gap-1.5 whitespace-nowrap overflow-hidden">
-                        {c.fit === "Target Fit" && <Star className="h-3 w-3 fill-[var(--metric-amber)] text-[var(--metric-amber)] shrink-0" />}
-                        {c.linkedin_url ? (
-                          <a href={c.linkedin_url} target="_blank" rel="noreferrer"
-                             className="hover:text-accent inline-flex items-center gap-1 truncate" title={c.name}>
-                            <span className="truncate">{c.name}</span>
-                            <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
-                          </a>
-                        ) : (
-                          <Link to="/candidates/$id" params={{ id: c.id }}
-                                className="hover:text-accent truncate" title={c.name}>
-                            {c.name}
-                          </Link>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground w-[200px] max-w-[200px]">
-                      <div className="truncate" title={`${c.current_title ?? ""}${c.current_firm ? ` · ${c.current_firm}` : ""}`}>
-                        {isRecruiter ? (
-                          <span className="inline-flex items-center gap-1 max-w-full">
-                            <EditableText value={c.current_title} onSave={(v) => patch(c.id, { current_title: v })} placeholder="title" className="text-xs truncate" />
-                            <span>·</span>
-                            <EditableText value={c.current_firm} onSave={(v) => patch(c.id, { current_firm: v })} placeholder="firm" className="text-xs truncate" />
-                          </span>
-                        ) : (
-                          <>{(c.current_title ?? "—")}{c.current_firm ? ` · ${c.current_firm}` : ""}</>
-                        )}
+                    <TableCell className={`font-medium align-middle w-[280px] max-w-[280px] ${isRecruiter ? "sticky left-10 bg-card z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]" : "sticky left-0 bg-card z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]"}`}>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 whitespace-nowrap overflow-hidden">
+                          {c.fit === "Target Fit" && <Star className="h-3 w-3 fill-[var(--metric-amber)] text-[var(--metric-amber)] shrink-0" />}
+                          {c.linkedin_url ? (
+                            <a href={c.linkedin_url} target="_blank" rel="noreferrer"
+                               className="hover:text-accent inline-flex items-center gap-1 truncate" title={c.name}>
+                              <span className="truncate">{c.name}</span>
+                              <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
+                            </a>
+                          ) : (
+                            <Link to="/candidates/$id" params={{ id: c.id }}
+                                  className="hover:text-accent truncate" title={c.name}>
+                              {c.name}
+                            </Link>
+                          )}
+                        </div>
+                        <div
+                          className="text-xs text-muted-foreground truncate"
+                          title={`${c.current_title ?? ""}${c.current_firm ? ` · ${c.current_firm}` : ""}`}
+                        >
+                          {isRecruiter ? (
+                            <span className="inline-flex items-center gap-1 max-w-full">
+                              <EditableText value={c.current_title} onSave={(v) => patch(c.id, { current_title: v })} placeholder="title" className="text-xs truncate" />
+                              <span>·</span>
+                              <EditableText value={c.current_firm} onSave={(v) => patch(c.id, { current_firm: v })} placeholder="firm" className="text-xs truncate" />
+                            </span>
+                          ) : (
+                            <>{(c.current_title ?? "—")}{c.current_firm ? ` · ${c.current_firm}` : ""}</>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>

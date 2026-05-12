@@ -44,6 +44,24 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          id: boolean
+          search_start_date: string
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          search_start_date?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          search_start_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       candidates: {
         Row: {
           client_visible: boolean

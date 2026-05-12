@@ -9,6 +9,7 @@ export type DashboardData = {
   searchInitiated: string | null;
   daysActive: number;
   candidatesInPipeline: number;
+  masterTotal: number;
   shortlistedCount: number;
   weekly: {
     addedToday: number;
@@ -67,14 +68,20 @@ export const getDashboardData = createServerFn({ method: "GET" })
       screen_out_reason: string | null; current_firm: string | null; current_title: string | null;
     }>;
 
-    const searchInitiated = list.length
-      ? list.reduce((min, c) => (c.created_at < min ? c.created_at : min), list[0].created_at)
-      : null;
-    const daysActive = searchInitiated
-      ? Math.max(0, Math.floor((Date.now() - new Date(searchInitiated).getTime()) / 86400000))
-      : 0;
+    const { data: settings } = await supabase
+      .from("app_settings")
+      .select("search_start_date")
+      .eq("id", true)
+      .maybeSingle();
+    const searchStartDate = (settings?.search_start_date as string | undefined) ?? "2026-04-01";
+    const searchInitiated = `${searchStartDate}T00:00:00.000Z`;
+    const daysActive = Math.max(
+      0,
+      Math.floor((Date.now() - new Date(searchInitiated).getTime()) / 86400000),
+    );
 
     const candidatesInPipeline = list.filter((c) => !ACTIVE_EXCLUDE.has(c.pipeline_stage)).length;
+    const masterTotal = list.filter((c) => c.pipeline_stage !== "Placed").length;
     const shortlistedCount = list.filter((c) => c.shortlisted).length;
 
     const today = todayIsoDate();
@@ -206,6 +213,7 @@ export const getDashboardData = createServerFn({ method: "GET" })
       searchInitiated,
       daysActive,
       candidatesInPipeline,
+      masterTotal,
       shortlistedCount,
       weekly: {
         addedToday,
