@@ -47,7 +47,20 @@ export const listCandidates = createServerFn({ method: "GET" })
     }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    let result = rows ?? [];
+    if (data.seniority) {
+      result = result.filter((r) => {
+        const t = ((r as { current_title?: string | null }).current_title ?? "").toString();
+        if (!t) return false;
+        const tooSeniorHit = TOO_SENIOR_RE.test(t) && !(VICE_PRES_RE.test(t) && !TOO_SENIOR_NON_VP_RE.test(t));
+        if (data.seniority === "tooSenior") return tooSeniorHit;
+        if (tooSeniorHit) return false;
+        if (data.seniority === "vp") return VP_RE.test(t) || VICE_PRES_RE.test(t);
+        if (data.seniority === "seniorAssociate") return SR_ASSOC_RE.test(t);
+        return false;
+      });
+    }
+    return result;
   });
 
 export const getCandidate = createServerFn({ method: "GET" })
