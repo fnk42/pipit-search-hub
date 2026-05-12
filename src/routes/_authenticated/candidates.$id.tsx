@@ -153,7 +153,7 @@ function CandidateDetailPage() {
                       notes: c.notes ?? "",
                       date_sourced: c.date_sourced ?? "",
                       client_visible: c.client_visible,
-                      shortlisted: c.shortlisted ?? false,
+                      fit: ((c as { fit?: string }).fit ?? "Unassessed") as never,
                     }}
                     submitLabel="Save changes"
                     onSubmit={async (v) => {
