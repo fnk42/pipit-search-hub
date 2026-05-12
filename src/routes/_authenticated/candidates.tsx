@@ -182,15 +182,27 @@ function CandidatesPage() {
       )}
 
       {isRecruiter && (
-        <Tabs value={tab} onValueChange={(v) => { setTab(v as Tab); setSelected(new Set()); }}>
-          <TabsList>
-            <TabsTrigger value="master">Master list ({senFiltered.length})</TabsTrigger>
-            <TabsTrigger value="shortlist">
-              <Star className="h-3.5 w-3.5 mr-1.5" />
-              Shortlist ({shortlistedCount})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center gap-6 border-b border-[#EAECF0]">
+          {([
+            { id: "master", label: "Master list", count: senFiltered.length },
+            { id: "shortlist", label: "Shortlist", count: shortlistedCount },
+          ] as const).map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => { setTab(t.id as Tab); setSelected(new Set()); }}
+                className={`-mb-px pb-3 pt-1 text-sm font-semibold border-b-2 transition-colors ${
+                  active
+                    ? "text-[#1570EF] border-[#1570EF]"
+                    : "text-[#667085] border-transparent hover:text-[#101828]"
+                }`}
+              >
+                {t.label} ({t.count})
+              </button>
+            );
+          })}
+        </div>
       )}
 
       <CandidateFilters value={filters} onChange={handleFiltersChange} role={isRecruiter ? "recruiter" : "client"} />
