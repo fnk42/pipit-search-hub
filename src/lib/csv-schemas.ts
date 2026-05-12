@@ -231,7 +231,7 @@ const optNum = z.preprocess((v) => {
 
 export const peFirmRowSchema = z.object({
   name: z.string().trim().min(1, "Name required").max(200),
-  status: z.preprocess((v) => (v ? String(v).trim() : "Target"), z.enum(PE_STATUSES)),
+  status: z.preprocess((v) => (v ? String(v).trim() : "Not started"), z.enum(PE_STATUSES)),
   aum_b: optNum,
   hq: optStr,
   location: optStr,
