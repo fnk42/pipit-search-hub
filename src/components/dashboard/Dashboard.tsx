@@ -90,7 +90,7 @@ function SeniorityRow({ data, loading }: { data?: DashboardData; loading: boolea
         {tiles.map((t) => (
           <button
             key={t.label}
-            onClick={() => navigate({ to: "/candidates", search: { search: t.search } })}
+            onClick={() => navigate({ to: "/candidates", search: { seniority: t.seniority } })}
             className={cn("p-5 border-0 shadow-[var(--shadow-soft)] rounded-lg text-left hover:shadow-[var(--shadow-card)] transition-shadow", TONE_BG[t.tone])}
           >
             <p className="text-[11px] uppercase tracking-[0.14em] text-foreground/60">{t.label}</p>
