@@ -49,6 +49,7 @@ function CandidatesPage() {
     owner: search.owner ?? "",
     sourcedBy: search.sourcedBy ?? "",
     screenOutReason: search.screenOutReason ?? "",
+    seniority: search.seniority ?? "",
   }));
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const qc = useQueryClient();
