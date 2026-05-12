@@ -315,14 +315,14 @@ function StatCardsRow({
                 <YAxis tick={{ fontSize: 10, fill: "currentColor" }} stroke="var(--border)" allowDecimals={false} />
                 <Bar
                   dataKey="count"
-                  radius={[3, 3, 0, 0]}
+                  radius={[4, 4, 0, 0]}
                   cursor="pointer"
                   onClick={(d: { bucket?: string }) => {
                     if (d?.bucket) navigate({ to: "/candidates", search: { location: d.bucket } });
                   }}
                 >
                   {(data?.geography ?? []).map((_, i) => (
-                    <Cell key={i} fill={["#1e3a5f", "#d4a017", "#5b8c5a", "#c0392b", "#7d3c98"][i % 5]} />
+                    <Cell key={i} fill={["#1570EF", "#B54708", "#067647", "#7A5AF8", "#E31B54"][i % 5]} />
                   ))}
                 </Bar>
               </BarChart>

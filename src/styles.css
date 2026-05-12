@@ -1,6 +1,22 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+:root {
+  /* Untitled UI tokens (additive — used by candidate views & data tables) */
+  --uui-bg: #FFFFFF;
+  --uui-row-hover: #F9FAFB;
+  --uui-header-bg: #F9FAFB;
+  --uui-border: #EAECF0;
+  --uui-text: #101828;
+  --uui-text-2: #475467;
+  --uui-text-3: #667085;
+  --uui-input-border: #D0D5DD;
+  --uui-blue-600: #1570EF;
+  --uui-blue-50: #EFF8FF;
+  --uui-blue-100: #E0EAFF;
+}
 
 @custom-variant dark (&:is(.dark *));
 
