@@ -33,7 +33,7 @@ export function StageBadge({ stage, className }: { stage: string; className?: st
   const tone = STAGE_TONE[stage] ?? "neutral";
   return (
     <span className={cn(
-      "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap",
+      "inline-flex items-center rounded border px-1.5 py-0 text-[11px] font-medium leading-[18px] whitespace-nowrap",
       TONE_CLASS[tone],
       className,
     )}>

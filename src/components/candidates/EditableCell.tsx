@@ -72,8 +72,8 @@ export function EditableText({ value, onSave, className, placeholder, disabled, 
         className,
       )}
     >
-      <span className="truncate">{display ? display(value) : (value || <span className="text-muted-foreground">{placeholder ?? "—"}</span>)}</span>
-      {!disabled && <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" />}
+      <span className="truncate">{display ? display(value) : (value || <span className="text-[#667085]">{placeholder ?? "—"}</span>)}</span>
+      {!disabled && <Pencil className="h-3 w-3 text-[#667085] opacity-0 group-hover:opacity-100 shrink-0" />}
     </button>
   );
 }
