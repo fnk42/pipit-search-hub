@@ -26,7 +26,7 @@ export type DashboardData = {
   rejectionByReason: { week: { name: string; count: number }[]; all: { name: string; count: number }[] };
   topFirms: { firm: string; count: number }[];
   peCoverage: { sourced: number; total: number };
-  seniority: { vp: number; seniorAssociate: number; tooSenior: number };
+  seniority: { vp: number; seniorAssociate: number; other: number; total: number };
   activity: { id: string; created_at: string; user_name: string | null; description: string }[];
 };
 
@@ -157,20 +157,17 @@ export const getDashboardData = createServerFn({ method: "GET" })
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
-    // Seniority buckets from current_title (case-insensitive). Order matters: too senior takes priority.
-    const TOO_SENIOR_RE = /\b(managing director|md|principal|head of|partner|chief|cio|cfo|coo|ceo|president)\b/i;
-    const VICE_PRES_RE = /\bvice president\b/i;
-    const VP_RE = /\b(vp|svp|evp)\b/i;
+    // Seniority buckets from current_title (case-insensitive). Master list = everyone except Placed.
+    // VP + Senior Associate + Other === masterTotal.
+    const VP_RE = /\b(vp|svp|evp|vice president)\b/i;
     const SR_ASSOC_RE = /\b(senior associate|sr\.? associate)\b/i;
-    let vp = 0, seniorAssociate = 0, tooSenior = 0;
+    let vp = 0, seniorAssociate = 0, other = 0;
     for (const c of list) {
+      if (c.pipeline_stage === "Placed") continue;
       const t = (c.current_title ?? "").toString();
-      if (!t) continue;
-      // "too senior" wins over VP unless the only senior match is "vice president"
-      const tooSeniorHit = TOO_SENIOR_RE.test(t) && !(VICE_PRES_RE.test(t) && !/(managing director|\bmd\b|principal|head of|partner|chief|\bcio\b|\bcfo\b|\bcoo\b|\bceo\b|president)/i.test(t));
-      if (tooSeniorHit) { tooSenior++; continue; }
-      if (VP_RE.test(t) || VICE_PRES_RE.test(t)) { vp++; continue; }
+      if (VP_RE.test(t)) { vp++; continue; }
       if (SR_ASSOC_RE.test(t)) { seniorAssociate++; continue; }
+      other++;
     }
 
     let peCoverage = { sourced: 0, total: TOTAL_PE_UNIVERSE };
@@ -230,7 +227,7 @@ export const getDashboardData = createServerFn({ method: "GET" })
       rejectionByReason: { week: rejectionByReasonWeek, all: rejectionByReasonAll },
       topFirms,
       peCoverage,
-      seniority: { vp, seniorAssociate, tooSenior },
+      seniority: { vp, seniorAssociate, other, total: masterTotal },
       activity,
     };
   });
