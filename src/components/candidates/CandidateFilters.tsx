@@ -15,12 +15,13 @@ export type Filters = {
   owner: string;
   sourcedBy: string;
   screenOutReason: string;
+  seniority: string;
   clientVisible: "yes" | "no" | "all";
 };
 
 export const defaultFilters: Filters = {
   search: "", stage: "", location: "", irFunction: "",
-  owner: "", sourcedBy: "", screenOutReason: "",
+  owner: "", sourcedBy: "", screenOutReason: "", seniority: "",
   clientVisible: "all",
 };
 
