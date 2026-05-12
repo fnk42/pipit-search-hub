@@ -43,7 +43,7 @@ export function EditableText({ value, onSave, className, placeholder, disabled, 
             if (e.key === "Escape") cancel();
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); commit(); }
           }}
-          className="h-auto min-h-[60px] text-sm"
+          className="h-auto min-h-[60px] text-sm border-[#1570EF] shadow-[0_0_0_4px_#E0EAFF] focus-visible:ring-0"
         />
       );
     }
@@ -57,7 +57,7 @@ export function EditableText({ value, onSave, className, placeholder, disabled, 
           if (e.key === "Enter") { e.preventDefault(); commit(); }
           if (e.key === "Escape") cancel();
         }}
-        className="h-7 text-sm py-0"
+        className="h-7 text-sm py-0 border-[#1570EF] shadow-[0_0_0_4px_#E0EAFF] focus-visible:ring-0"
       />
     );
   }
