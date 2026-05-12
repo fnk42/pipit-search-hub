@@ -87,7 +87,9 @@ export function CsvImporter({ kind }: { kind: Kind }) {
       return fn({ data: { rows: mappedRows as never } });
     },
     onSuccess: (res) => {
-      toast.success(`Imported ${res.inserted} of ${rows.length}. ${res.errors.length ? `${res.errors.length} error(s).` : ""}`);
+      const dups = (res as { duplicates?: number }).duplicates ?? 0;
+      const dupMsg = dups > 0 ? ` ${dups} duplicate(s) skipped.` : "";
+      toast.success(`Imported ${res.inserted} of ${rows.length}.${dupMsg}${res.errors.length ? ` ${res.errors.length} error(s).` : ""}`);
       if (res.errors.length === 0) reset();
     },
     onError: (e: Error) => toast.error(e.message),

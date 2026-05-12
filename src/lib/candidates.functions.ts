@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   PIPELINE_STAGES, LOCATION_BUCKETS, IR_FUNCTIONS,
-  OWNERS, SOURCED_BY_OPTIONS, SCREEN_OUT_REASONS,
+  OWNERS, SOURCED_BY_OPTIONS, SCREEN_OUT_REASONS, CANDIDATE_FITS,
 } from "@/lib/csv-schemas";
 
 const filtersSchema = z.object({
@@ -14,16 +14,10 @@ const filtersSchema = z.object({
   owner: z.enum(OWNERS).optional(),
   sourcedBy: z.enum(SOURCED_BY_OPTIONS).optional(),
   screenOutReason: z.string().optional(),
-  seniority: z.enum(["vp", "seniorAssociate", "tooSenior"]).optional(),
+  fit: z.enum(CANDIDATE_FITS).optional(),
   clientVisible: z.enum(["yes", "no", "all"]).default("all"),
   shortlisted: z.enum(["yes", "no", "all"]).default("all"),
 }).default({ clientVisible: "all", shortlisted: "all" });
-
-const TOO_SENIOR_RE = /\b(managing director|md|principal|head of|partner|chief|cio|cfo|coo|ceo|president)\b/i;
-const VICE_PRES_RE = /\bvice president\b/i;
-const VP_RE = /\b(vp|svp|evp)\b/i;
-const SR_ASSOC_RE = /\b(senior associate|sr\.? associate)\b/i;
-const TOO_SENIOR_NON_VP_RE = /(managing director|\bmd\b|principal|head of|partner|chief|\bcio\b|\bcfo\b|\bcoo\b|\bceo\b|president)/i;
 
 export const listCandidates = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -37,6 +31,7 @@ export const listCandidates = createServerFn({ method: "GET" })
     if (data.owner) q = q.eq("owner", data.owner);
     if (data.sourcedBy) q = q.eq("sourced_by", data.sourcedBy);
     if (data.screenOutReason) q = q.eq("screen_out_reason", data.screenOutReason);
+    if (data.fit) q = q.eq("fit", data.fit);
     if (data.clientVisible === "yes") q = q.eq("client_visible", true);
     if (data.clientVisible === "no") q = q.eq("client_visible", false);
     if (data.shortlisted === "yes") q = q.eq("shortlisted", true);
@@ -47,20 +42,7 @@ export const listCandidates = createServerFn({ method: "GET" })
     }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    let result = rows ?? [];
-    if (data.seniority) {
-      result = result.filter((r) => {
-        const t = ((r as { current_title?: string | null }).current_title ?? "").toString();
-        if (!t) return false;
-        const tooSeniorHit = TOO_SENIOR_RE.test(t) && !(VICE_PRES_RE.test(t) && !TOO_SENIOR_NON_VP_RE.test(t));
-        if (data.seniority === "tooSenior") return tooSeniorHit;
-        if (tooSeniorHit) return false;
-        if (data.seniority === "vp") return VP_RE.test(t) || VICE_PRES_RE.test(t);
-        if (data.seniority === "seniorAssociate") return SR_ASSOC_RE.test(t);
-        return false;
-      });
-    }
-    return result;
+    return rows ?? [];
   });
 
 export const getCandidate = createServerFn({ method: "GET" })
@@ -115,6 +97,7 @@ const candidateInput = z.object({
   date_sourced: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().optional()),
   client_visible: z.boolean().default(false),
   shortlisted: z.boolean().default(false),
+  fit: z.enum(CANDIDATE_FITS).optional(),
 });
 
 export const createCandidate = createServerFn({ method: "POST" })
@@ -159,7 +142,21 @@ export const setShortlist = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { error } = await context.supabase
       .from("candidates")
-      .update({ shortlisted: data.shortlisted })
+      .update({ fit: data.shortlisted ? "Target Fit" : "Unassessed" })
+      .in("id", data.ids);
+    if (error) throw new Error(error.message);
+    return { ok: true, count: data.ids.length };
+  });
+
+export const setFit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ ids: z.array(z.string().uuid()).min(1).max(500), fit: z.enum(CANDIDATE_FITS) }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { error } = await context.supabase
+      .from("candidates")
+      .update({ fit: data.fit })
       .in("id", data.ids);
     if (error) throw new Error(error.message);
     return { ok: true, count: data.ids.length };

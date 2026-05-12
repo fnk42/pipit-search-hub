@@ -54,6 +54,7 @@ export type Database = {
           date_sourced: string | null
           email: string | null
           feedback_transformari: string | null
+          fit: Database["public"]["Enums"]["candidate_fit"]
           fnk_comments: string | null
           id: string
           ir_functions: Database["public"]["Enums"]["ir_function"][]
@@ -82,6 +83,7 @@ export type Database = {
           date_sourced?: string | null
           email?: string | null
           feedback_transformari?: string | null
+          fit?: Database["public"]["Enums"]["candidate_fit"]
           fnk_comments?: string | null
           id?: string
           ir_functions?: Database["public"]["Enums"]["ir_function"][]
@@ -112,6 +114,7 @@ export type Database = {
           date_sourced?: string | null
           email?: string | null
           feedback_transformari?: string | null
+          fit?: Database["public"]["Enums"]["candidate_fit"]
           fnk_comments?: string | null
           id?: string
           ir_functions?: Database["public"]["Enums"]["ir_function"][]
@@ -252,6 +255,12 @@ export type Database = {
     }
     Enums: {
       app_role: "recruiter" | "client"
+      candidate_fit:
+        | "Target Fit"
+        | "Too Junior"
+        | "Too Senior"
+        | "Off-function"
+        | "Unassessed"
       ir_function: "Fundraising/BD" | "Client Services/LP Reporting" | "Unclear"
       location_bucket:
         | "Florida"
@@ -415,6 +424,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["recruiter", "client"],
+      candidate_fit: [
+        "Target Fit",
+        "Too Junior",
+        "Too Senior",
+        "Off-function",
+        "Unassessed",
+      ],
       ir_function: [
         "Fundraising/BD",
         "Client Services/LP Reporting",
