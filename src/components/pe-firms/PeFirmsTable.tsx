@@ -100,16 +100,7 @@ export function PeFirmsTable({ rows }: { rows: Firm[] }) {
           <p className="text-sm text-muted-foreground">No firms match.</p>
         </div>
       ) : (
-        <div className="space-y-1">
-          <div ref={topRef} onScroll={onScroll("top")} className="overflow-x-auto rounded-md border border-border bg-card/50">
-            <div style={{ width: scrollW, height: 1 }} />
-          </div>
-          <div
-            ref={bottomRef}
-            onScroll={onScroll("bottom")}
-            className="rounded-lg border border-border bg-card overflow-x-auto shadow-[var(--shadow-card)]"
-          >
-            <div ref={innerRef}>
+        <div className="rounded-lg border border-border bg-card overflow-x-auto shadow-[var(--shadow-card)]">
             <Table className="text-xs [&_th]:h-8 [&_th]:px-2 [&_th]:py-1 [&_td]:px-2 [&_td]:py-1.5">
               <TableHeader>
                 <TableRow>
