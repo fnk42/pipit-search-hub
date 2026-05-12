@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 type CandidatesSearch = {
   stage?: string; location?: string; irFunction?: string; search?: string;
-  owner?: string; sourcedBy?: string; screenOutReason?: string;
+  owner?: string; sourcedBy?: string; screenOutReason?: string; seniority?: string;
 };
 
 export const Route = createFileRoute("/_authenticated/candidates")({
@@ -27,6 +27,7 @@ export const Route = createFileRoute("/_authenticated/candidates")({
     owner: typeof raw.owner === "string" ? raw.owner : undefined,
     sourcedBy: typeof raw.sourcedBy === "string" ? raw.sourcedBy : undefined,
     screenOutReason: typeof raw.screenOutReason === "string" ? raw.screenOutReason : undefined,
+    seniority: typeof raw.seniority === "string" && ["vp","seniorAssociate","tooSenior"].includes(raw.seniority) ? raw.seniority : undefined,
   }),
   component: CandidatesPage,
 });
@@ -48,6 +49,7 @@ function CandidatesPage() {
     owner: search.owner ?? "",
     sourcedBy: search.sourcedBy ?? "",
     screenOutReason: search.screenOutReason ?? "",
+    seniority: search.seniority ?? "",
   }));
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const qc = useQueryClient();
@@ -62,8 +64,9 @@ function CandidatesPage() {
       owner: search.owner ?? "",
       sourcedBy: search.sourcedBy ?? "",
       screenOutReason: search.screenOutReason ?? "",
+      seniority: search.seniority ?? "",
     }));
-  }, [search.search, search.stage, search.location, search.irFunction, search.owner, search.sourcedBy, search.screenOutReason]);
+  }, [search.search, search.stage, search.location, search.irFunction, search.owner, search.sourcedBy, search.screenOutReason, search.seniority]);
 
   const handleFiltersChange = (next: Filters) => {
     setFilters(next);
@@ -76,6 +79,7 @@ function CandidatesPage() {
         owner: next.owner || undefined,
         sourcedBy: next.sourcedBy || undefined,
         screenOutReason: next.screenOutReason || undefined,
+        seniority: next.seniority || undefined,
       },
       replace: true,
     });
@@ -95,6 +99,7 @@ function CandidatesPage() {
         owner: (filters.owner || undefined) as never,
         sourcedBy: (filters.sourcedBy || undefined) as never,
         screenOutReason: filters.screenOutReason || undefined,
+        seniority: (filters.seniority || undefined) as never,
         clientVisible: filters.clientVisible,
         shortlisted: "all",
       },

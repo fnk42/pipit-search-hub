@@ -13,8 +13,10 @@ export type DashboardData = {
   weekly: {
     addedToday: number;
     addedThisWeek: number;
+    addedThisMonth: number;
     rejectedByTransformariThisWeek: number;
     rejectedPctThisWeek: number | null;
+    acceptedPct: number | null;
   };
   funnel: { stage: string; count: number }[];
   geography: { bucket: string; count: number }[];
@@ -82,12 +84,20 @@ export const getDashboardData = createServerFn({ method: "GET" })
       const d = c.date_sourced ?? c.created_at.slice(0, 10);
       return d >= weekStart.slice(0, 10);
     }).length;
+    const monthStart = today.slice(0, 7) + "-01";
+    const addedThisMonth = list.filter((c) => {
+      const d = c.date_sourced ?? c.created_at.slice(0, 10);
+      return d >= monthStart;
+    }).length;
     const rejectedByTransformariThisWeek = list.filter(
       (c) => c.pipeline_stage === "Rejected by Transformari" && c.updated_at >= weekStart,
     ).length;
     const rejectedPctThisWeek = addedThisWeek > 0
       ? Math.round((rejectedByTransformariThisWeek / addedThisWeek) * 100)
       : null;
+    const NON_ACCEPTED = new Set<string>(["Sourced", "For Sean - Please reach out", ...REJECTED_STAGES]);
+    const acceptedCount = list.filter((c) => !NON_ACCEPTED.has(c.pipeline_stage)).length;
+    const acceptedPct = list.length > 0 ? Math.round((acceptedCount / list.length) * 100) : null;
 
     const funnel = PIPELINE_STAGES.map((stage) => ({
       stage,
@@ -200,8 +210,10 @@ export const getDashboardData = createServerFn({ method: "GET" })
       weekly: {
         addedToday,
         addedThisWeek,
+        addedThisMonth,
         rejectedByTransformariThisWeek,
         rejectedPctThisWeek,
+        acceptedPct,
       },
       funnel,
       geography,

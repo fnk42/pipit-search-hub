@@ -15,12 +15,13 @@ export type Filters = {
   owner: string;
   sourcedBy: string;
   screenOutReason: string;
+  seniority: string;
   clientVisible: "yes" | "no" | "all";
 };
 
 export const defaultFilters: Filters = {
   search: "", stage: "", location: "", irFunction: "",
-  owner: "", sourcedBy: "", screenOutReason: "",
+  owner: "", sourcedBy: "", screenOutReason: "", seniority: "",
   clientVisible: "all",
 };
 
@@ -30,7 +31,13 @@ export function CandidateFilters({
   value, onChange, role,
 }: { value: Filters; onChange: (v: Filters) => void; role: "recruiter" | "client" }) {
   const has = value.search || value.stage || value.location || value.irFunction
-    || value.owner || value.sourcedBy || value.screenOutReason || value.clientVisible !== "all";
+    || value.owner || value.sourcedBy || value.screenOutReason || value.seniority || value.clientVisible !== "all";
+
+  const SENIORITY_LABEL: Record<string, string> = {
+    vp: "VP / SVP / EVP",
+    seniorAssociate: "Senior Associate",
+    tooSenior: "Too senior",
+  };
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-3 shadow-[var(--shadow-soft)]">
@@ -60,6 +67,19 @@ export function CandidateFilters({
             </SelectContent>
           </Select>
         </>
+      )}
+      {value.seniority && (
+        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs">
+          Seniority: {SENIORITY_LABEL[value.seniority] ?? value.seniority}
+          <button
+            type="button"
+            className="ml-0.5 text-muted-foreground hover:text-foreground"
+            onClick={() => onChange({ ...value, seniority: "" })}
+            aria-label="Clear seniority filter"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </span>
       )}
       {has && (
         <Button variant="ghost" size="sm" onClick={() => onChange(defaultFilters)}>

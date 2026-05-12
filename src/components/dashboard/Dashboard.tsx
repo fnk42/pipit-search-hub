@@ -78,10 +78,10 @@ export function Dashboard() {
 function SeniorityRow({ data, loading }: { data?: DashboardData; loading: boolean }) {
   const navigate = useNavigate();
   const s = data?.seniority;
-  const tiles: { label: string; value: number | undefined; tone: MetricTone; search: string; sub: string }[] = [
-    { label: "Too senior (MD / Principal / Head of)", value: s?.tooSenior, tone: "clay", search: "Managing Director", sub: "Captured but out of scope" },
-    { label: "VP / SVP / EVP sourced", value: s?.vp, tone: "indigo", search: "VP", sub: "In scope — vice president level" },
-    { label: "Senior Associates sourced", value: s?.seniorAssociate, tone: "sage", search: "Senior Associate", sub: "In scope — associate level" },
+  const tiles: { label: string; value: number | undefined; tone: MetricTone; seniority: "vp" | "seniorAssociate" | "tooSenior"; sub: string }[] = [
+    { label: "Too senior (MD / Principal / Head of)", value: s?.tooSenior, tone: "clay", seniority: "tooSenior", sub: "Captured but out of scope" },
+    { label: "VP / SVP / EVP sourced", value: s?.vp, tone: "indigo", seniority: "vp", sub: "In scope — vice president level" },
+    { label: "Senior Associates sourced", value: s?.seniorAssociate, tone: "sage", seniority: "seniorAssociate", sub: "In scope — associate level" },
   ];
   return (
     <div>
@@ -90,7 +90,7 @@ function SeniorityRow({ data, loading }: { data?: DashboardData; loading: boolea
         {tiles.map((t) => (
           <button
             key={t.label}
-            onClick={() => navigate({ to: "/candidates", search: { search: t.search } })}
+            onClick={() => navigate({ to: "/candidates", search: { seniority: t.seniority } })}
             className={cn("p-5 border-0 shadow-[var(--shadow-soft)] rounded-lg text-left hover:shadow-[var(--shadow-card)] transition-shadow", TONE_BG[t.tone])}
           >
             <p className="text-[11px] uppercase tracking-[0.14em] text-foreground/60">{t.label}</p>
@@ -134,10 +134,10 @@ function SummaryStat({ label, value }: { label: string; value: string }) {
 function WeeklyStats({ data, loading }: { data?: DashboardData; loading: boolean }) {
   const w = data?.weekly;
   const tiles: { label: string; value: string; tone: MetricTone; sub?: string }[] = [
-    { label: "Added today",      value: loading ? "…" : String(w?.addedToday ?? 0),                tone: "sage" },
-    { label: "Added this week",  value: loading ? "…" : String(w?.addedThisWeek ?? 0),             tone: "sky" },
-    { label: "Rejected by Transformari (wk)", value: loading ? "…" : String(w?.rejectedByTransformariThisWeek ?? 0), tone: "clay" },
-    { label: "% Rejected this week", value: loading ? "…" : (w?.rejectedPctThisWeek == null ? "—" : `${w.rejectedPctThisWeek}%`), tone: "mauve" },
+    { label: "Added today",      value: loading ? "…" : String(w?.addedToday ?? 0),     tone: "sage" },
+    { label: "Added this week",  value: loading ? "…" : String(w?.addedThisWeek ?? 0),  tone: "sky" },
+    { label: "Added this month", value: loading ? "…" : String(w?.addedThisMonth ?? 0), tone: "indigo" },
+    { label: "% Accepted",       value: loading ? "…" : (w?.acceptedPct == null ? "—" : `${w.acceptedPct}%`), tone: "mauve", sub: "Reached out or further" },
   ];
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
