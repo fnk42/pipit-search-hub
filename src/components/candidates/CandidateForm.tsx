@@ -33,7 +33,7 @@ const schema = z.object({
   notes: z.string().max(10000).optional(),
   date_sourced: z.string().optional(),
   client_visible: z.boolean(),
-  fit: z.enum(CANDIDATE_FITS).default("Unassessed"),
+  fit: z.enum(CANDIDATE_FITS),
 });
 
 export type CandidateFormValues = z.infer<typeof schema>;
