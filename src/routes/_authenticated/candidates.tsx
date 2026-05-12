@@ -85,7 +85,7 @@ function CandidatesPage() {
   const handleFiltersChange = (next: Filters) => {
     setFilters(next);
     navigate({
-      search: (prev) => ({
+      search: (prev: CandidatesSearch) => ({
         ...prev,
         search: next.search || undefined,
         stage: next.stage || undefined,
@@ -150,7 +150,7 @@ function CandidatesPage() {
   };
 
   const clearSeniority = () =>
-    navigate({ search: (prev) => ({ ...prev, seniority: undefined }), replace: true });
+    navigate({ search: (prev: CandidatesSearch) => ({ ...prev, seniority: undefined }), replace: true });
 
   return (
     <div className="space-y-5">
@@ -174,7 +174,7 @@ function CandidatesPage() {
       {search.seniority && (
         <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1 text-xs">
           <span className="text-muted-foreground">Filtered:</span>
-          <span className="font-medium text-foreground">{SENIORITY_LABEL[search.seniority]}</span>
+          <span className="font-medium text-foreground">{SENIORITY_LABEL[search.seniority as Seniority]}</span>
           <button onClick={clearSeniority} className="ml-1 inline-flex items-center hover:text-destructive" aria-label="Clear seniority filter">
             <X className="h-3 w-3" />
           </button>
