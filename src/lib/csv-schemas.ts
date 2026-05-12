@@ -34,6 +34,9 @@ export const LOCATION_BUCKETS = ["Florida", "Texas", "Tri-State", "Other US", "I
 export const IR_FUNCTIONS = ["Fundraising/BD", "Client Services/LP Reporting", "Unclear"] as const;
 export const OWNERS = ["Sam", "Stephanie", "Sean"] as const;
 export const SOURCED_BY_OPTIONS = ["GPR Team", "Transformari"] as const;
+export const CANDIDATE_FITS = ["Target Fit", "Too Junior", "Too Senior", "Off-function", "Unassessed"] as const;
+export type CandidateFit = (typeof CANDIDATE_FITS)[number];
+
 export const SCREEN_OUT_REASONS = [
   "Location",
   "Timing",
@@ -220,6 +223,17 @@ export const candidateRowSchema = z.object({
   date_sourced: z.preprocess(aliasDate, z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
   client_visible: optBool,
   shortlisted: optBool,
+  fit: z.preprocess((v) => {
+    if (v == null || v === "") return "Unassessed";
+    const s = String(v).toLowerCase().trim();
+    if (!s) return "Unassessed";
+    if (s.includes("target") || s === "fit" || s === "yes") return "Target Fit";
+    if (s.includes("junior")) return "Too Junior";
+    if (s.includes("senior")) return "Too Senior";
+    if (s.includes("off")) return "Off-function";
+    if ((CANDIDATE_FITS as readonly string[]).includes(String(v))) return v;
+    return "Unassessed";
+  }, z.enum(CANDIDATE_FITS).default("Unassessed")),
 });
 export type CandidateRow = z.infer<typeof candidateRowSchema>;
 
@@ -263,6 +277,7 @@ export const CANDIDATE_HEADER_ALIASES: Record<string, string[]> = {
   date_sourced: ["date sourced","sourced date","date added","added on","source date"],
   client_visible: ["client visible","visible","show client"],
   shortlisted: ["shortlisted","shortlist","starred"],
+  fit: ["fit","role fit","candidate fit","fit assessment"],
 };
 
 export const PE_HEADER_ALIASES: Record<string, string[]> = {
@@ -297,6 +312,7 @@ export const CANDIDATE_FIELDS = [
   { key: "notes", label: "Notes" },
   { key: "client_visible", label: "Client visible" },
   { key: "shortlisted", label: "Shortlisted" },
+  { key: "fit", label: "Fit" },
 ] as const;
 
 export const PE_FIELDS = [
