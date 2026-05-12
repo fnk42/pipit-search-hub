@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -50,27 +50,7 @@ export function PeFirmsTable({ rows }: { rows: Firm[] }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const topRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-  const [scrollW, setScrollW] = useState(0);
 
-  useEffect(() => {
-    const el = innerRef.current;
-    if (!el) return;
-    const update = () => setScrollW(el.scrollWidth);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const syncing = useRef(false);
-  const onScroll = (src: "top" | "bottom") => (e: React.UIEvent<HTMLDivElement>) => {
-    if (syncing.current) { syncing.current = false; return; }
-    const other = src === "top" ? bottomRef.current : topRef.current;
-    if (other) { syncing.current = true; other.scrollLeft = e.currentTarget.scrollLeft; }
-  };
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -100,16 +80,7 @@ export function PeFirmsTable({ rows }: { rows: Firm[] }) {
           <p className="text-sm text-muted-foreground">No firms match.</p>
         </div>
       ) : (
-        <div className="space-y-1">
-          <div ref={topRef} onScroll={onScroll("top")} className="overflow-x-auto rounded-md border border-border bg-card/50">
-            <div style={{ width: scrollW, height: 1 }} />
-          </div>
-          <div
-            ref={bottomRef}
-            onScroll={onScroll("bottom")}
-            className="rounded-lg border border-border bg-card overflow-x-auto shadow-[var(--shadow-card)]"
-          >
-            <div ref={innerRef}>
+        <div className="rounded-lg border border-border bg-card overflow-x-auto shadow-[var(--shadow-card)]">
             <Table className="text-xs [&_th]:h-8 [&_th]:px-2 [&_th]:py-1 [&_td]:px-2 [&_td]:py-1.5">
               <TableHeader>
                 <TableRow>
@@ -177,8 +148,6 @@ export function PeFirmsTable({ rows }: { rows: Firm[] }) {
                 })}
               </TableBody>
             </Table>
-            </div>
-          </div>
         </div>
       )}
     </div>
