@@ -64,8 +64,9 @@ function CandidatesPage() {
       owner: search.owner ?? "",
       sourcedBy: search.sourcedBy ?? "",
       screenOutReason: search.screenOutReason ?? "",
+      seniority: search.seniority ?? "",
     }));
-  }, [search.search, search.stage, search.location, search.irFunction, search.owner, search.sourcedBy, search.screenOutReason]);
+  }, [search.search, search.stage, search.location, search.irFunction, search.owner, search.sourcedBy, search.screenOutReason, search.seniority]);
 
   const handleFiltersChange = (next: Filters) => {
     setFilters(next);
@@ -78,6 +79,7 @@ function CandidatesPage() {
         owner: next.owner || undefined,
         sourcedBy: next.sourcedBy || undefined,
         screenOutReason: next.screenOutReason || undefined,
+        seniority: next.seniority || undefined,
       },
       replace: true,
     });
@@ -97,6 +99,7 @@ function CandidatesPage() {
         owner: (filters.owner || undefined) as never,
         sourcedBy: (filters.sourcedBy || undefined) as never,
         screenOutReason: filters.screenOutReason || undefined,
+        seniority: (filters.seniority || undefined) as never,
         clientVisible: filters.clientVisible,
         shortlisted: "all",
       },
