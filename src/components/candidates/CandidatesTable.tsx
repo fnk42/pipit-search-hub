@@ -145,8 +145,7 @@ export function CandidatesTable({
                     <Checkbox checked={allSelected} onCheckedChange={() => onToggleAll?.()} aria-label="Select all" />
                   </TableHead>
                 )}
-                <TableHead className={`w-[180px] ${isRecruiter ? "sticky left-10 bg-card z-20" : "sticky left-0 bg-card z-20"}`}>Name</TableHead>
-                <TableHead className="w-[200px]">Title / Firm</TableHead>
+                <TableHead className={`w-[280px] ${isRecruiter ? "sticky left-10 bg-card z-20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]" : "sticky left-0 bg-card z-20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]"}`}>Name · Title / Firm</TableHead>
                 <TableHead className="w-[170px]">Stage</TableHead>
                 <TableHead className="w-[120px]">Fit</TableHead>
                 <TableHead className="w-[110px]">Location</TableHead>
