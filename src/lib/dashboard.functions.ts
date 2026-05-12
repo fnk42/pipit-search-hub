@@ -13,8 +13,10 @@ export type DashboardData = {
   weekly: {
     addedToday: number;
     addedThisWeek: number;
+    addedThisMonth: number;
     rejectedByTransformariThisWeek: number;
     rejectedPctThisWeek: number | null;
+    acceptedPct: number | null;
   };
   funnel: { stage: string; count: number }[];
   geography: { bucket: string; count: number }[];
