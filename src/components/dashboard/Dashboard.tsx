@@ -134,10 +134,10 @@ function SummaryStat({ label, value }: { label: string; value: string }) {
 function WeeklyStats({ data, loading }: { data?: DashboardData; loading: boolean }) {
   const w = data?.weekly;
   const tiles: { label: string; value: string; tone: MetricTone; sub?: string }[] = [
-    { label: "Added today",      value: loading ? "…" : String(w?.addedToday ?? 0),                tone: "sage" },
-    { label: "Added this week",  value: loading ? "…" : String(w?.addedThisWeek ?? 0),             tone: "sky" },
-    { label: "Rejected by Transformari (wk)", value: loading ? "…" : String(w?.rejectedByTransformariThisWeek ?? 0), tone: "clay" },
-    { label: "% Rejected this week", value: loading ? "…" : (w?.rejectedPctThisWeek == null ? "—" : `${w.rejectedPctThisWeek}%`), tone: "mauve" },
+    { label: "Added today",      value: loading ? "…" : String(w?.addedToday ?? 0),     tone: "sage" },
+    { label: "Added this week",  value: loading ? "…" : String(w?.addedThisWeek ?? 0),  tone: "sky" },
+    { label: "Added this month", value: loading ? "…" : String(w?.addedThisMonth ?? 0), tone: "indigo" },
+    { label: "% Accepted",       value: loading ? "…" : (w?.acceptedPct == null ? "—" : `${w.acceptedPct}%`), tone: "mauve", sub: "Reached out or further" },
   ];
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
