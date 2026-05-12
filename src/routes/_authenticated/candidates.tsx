@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 type CandidatesSearch = {
   stage?: string; location?: string; irFunction?: string; search?: string;
-  owner?: string; sourcedBy?: string; screenOutReason?: string;
+  owner?: string; sourcedBy?: string; screenOutReason?: string; seniority?: string;
 };
 
 export const Route = createFileRoute("/_authenticated/candidates")({
@@ -27,6 +27,7 @@ export const Route = createFileRoute("/_authenticated/candidates")({
     owner: typeof raw.owner === "string" ? raw.owner : undefined,
     sourcedBy: typeof raw.sourcedBy === "string" ? raw.sourcedBy : undefined,
     screenOutReason: typeof raw.screenOutReason === "string" ? raw.screenOutReason : undefined,
+    seniority: typeof raw.seniority === "string" && ["vp","seniorAssociate","tooSenior"].includes(raw.seniority) ? raw.seniority : undefined,
   }),
   component: CandidatesPage,
 });
