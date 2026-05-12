@@ -34,7 +34,7 @@ function LoginPage() {
       return;
     }
     setStatus("sending");
-    const redirectUrl = `${window.location.origin}/dashboard`;
+    const redirectUrl = `${window.location.origin}/auth/callback`;
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: redirectUrl },
