@@ -35,14 +35,12 @@ type Candidate = {
 const REJ = new Set<string>(REJECTED_STAGES);
 
 const FIT_CLASS: Record<CandidateFit, string> = {
-  "Target Fit": "bg-[var(--metric-amber)]/15 text-[var(--metric-amber)] border-[var(--metric-amber)]/30",
-  "Too Junior": "bg-muted text-muted-foreground border-border",
-  "Too Senior": "bg-muted text-muted-foreground border-border",
-  "Off-function": "bg-muted text-muted-foreground border-border",
-  "Unassessed": "bg-background text-muted-foreground border-dashed border-border",
+  "Target Fit": "bg-[#ECFDF3] text-[#067647] border-[#ABEFC6]",
+  "Too Junior": "bg-[#F2F4F7] text-[#344054] border-[#EAECF0]",
+  "Too Senior": "bg-[#F2F4F7] text-[#344054] border-[#EAECF0]",
+  "Off-function": "bg-[#F2F4F7] text-[#344054] border-[#EAECF0]",
+  "Unassessed": "bg-[#F2F4F7] text-[#344054] border-[#EAECF0]",
 };
-
-const TINY: React.CSSProperties = { fontSize: "8px", lineHeight: "12px" };
 
 export function CandidatesTable({
   rows, role, selected, onToggleRow, onToggleAll,
@@ -88,8 +86,8 @@ export function CandidatesTable({
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
-        <p className="text-sm text-muted-foreground">No candidates match these filters.</p>
+      <div className="rounded-lg border border-dashed border-[#EAECF0] bg-white p-10 text-center">
+        <p className="text-sm text-[#475467]">No candidates match these filters.</p>
       </div>
     );
   }
@@ -97,7 +95,8 @@ export function CandidatesTable({
   const allSelected = isRecruiter && selected && rows.length > 0 && selected.size === rows.length;
 
   const FitChip = ({ value }: { value: CandidateFit }) => (
-    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${FIT_CLASS[value]}`}>
+    <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${FIT_CLASS[value]}`}>
+      {value === "Target Fit" && <Star className="h-3 w-3 fill-current" />}
       {value}
     </span>
   );
@@ -107,24 +106,22 @@ export function CandidatesTable({
       {/* Mobile cards */}
       <div className="sm:hidden space-y-2">
         {rows.map((c) => (
-          <div key={c.id} className="rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-soft)]">
+          <div key={c.id} className="rounded-lg border border-[#EAECF0] bg-white p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 {c.linkedin_url ? (
-                  <a href={c.linkedin_url} target="_blank" rel="noreferrer" className="font-medium text-sm text-foreground truncate flex items-center gap-1.5 hover:text-accent">
-                    {c.fit === "Target Fit" && <Star className="h-3.5 w-3.5 fill-[var(--metric-amber)] text-[var(--metric-amber)] shrink-0" />}
+                  <a href={c.linkedin_url} target="_blank" rel="noreferrer" className="font-medium text-sm text-[#101828] truncate flex items-center gap-1.5 hover:text-[#1570EF]">
                     <span className="truncate">{c.name}</span>
-                    <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    <ExternalLink className="h-3 w-3 shrink-0 text-[#667085]" />
                   </a>
                 ) : (
-                  <Link to="/candidates/$id" params={{ id: c.id }} className="font-medium text-sm text-foreground truncate flex items-center gap-1.5 hover:text-accent">
-                    {c.fit === "Target Fit" && <Star className="h-3.5 w-3.5 fill-[var(--metric-amber)] text-[var(--metric-amber)] shrink-0" />}
+                  <Link to="/candidates/$id" params={{ id: c.id }} className="font-medium text-sm text-[#101828] truncate flex items-center gap-1.5 hover:text-[#1570EF]">
                     <span className="truncate">{c.name}</span>
                   </Link>
                 )}
-                <Link to="/candidates/$id" params={{ id: c.id }} className="text-xs text-muted-foreground truncate block hover:text-foreground">
-                  {c.current_title}{c.current_firm ? ` · ${c.current_firm}` : ""}
-                </Link>
+                <span className="text-xs text-[#475467] truncate block">
+                  {c.current_firm ?? "—"}
+                </span>
                 <div className="mt-1.5"><FitChip value={c.fit} /></div>
               </div>
               <StageBadge stage={c.pipeline_stage} />
@@ -133,136 +130,139 @@ export function CandidatesTable({
         ))}
       </div>
 
-      {/* Desktop table — sticky name col, spreadsheet-style auto width */}
-      <div className="hidden sm:block rounded-lg border border-border bg-card shadow-[var(--shadow-card)]">
-        <ScrollSyncContainer>
-          <Table className="text-sm w-auto min-w-full [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1.5">
-            <TableHeader>
-              <TableRow>
-                {isRecruiter && (
-                  <TableHead className="w-10 sticky left-0 bg-card z-20">
-                    <Checkbox checked={allSelected} onCheckedChange={() => onToggleAll?.()} aria-label="Select all" />
-                  </TableHead>
-                )}
-                <TableHead className={`whitespace-nowrap ${isRecruiter ? "sticky left-10 bg-card z-20 border-r border-border" : "sticky left-0 bg-card z-20 border-r border-border"}`}>Name</TableHead>
-                <TableHead className="whitespace-nowrap" style={TINY}>Title</TableHead>
-                <TableHead className="whitespace-nowrap" style={TINY}>Company</TableHead>
-                <TableHead className="whitespace-nowrap">Stage</TableHead>
-                <TableHead className="whitespace-nowrap">Fit</TableHead>
-                <TableHead className="whitespace-nowrap">Location</TableHead>
-                {isRecruiter && <TableHead className="whitespace-nowrap">Screen out reason</TableHead>}
-                {isRecruiter && <TableHead className="whitespace-nowrap text-right">Visible</TableHead>}
-                {isRecruiter && <TableHead className="w-8"></TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((c) => {
-                const isRej = REJ.has(c.pipeline_stage);
-                return (
-                  <TableRow key={c.id}>
-                    {isRecruiter && (
-                      <TableCell className="sticky left-0 bg-card z-10" onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={selected?.has(c.id) ?? false}
-                          onCheckedChange={() => onToggleRow?.(c.id)}
-                          aria-label={`Select ${c.name}`}
-                        />
-                      </TableCell>
+      {/* Desktop table — Untitled UI */}
+      <div className="hidden sm:block rounded-lg border border-[#EAECF0] bg-white overflow-hidden">
+        <Table className="w-full table-fixed">
+          <colgroup>
+            {isRecruiter && <col style={{ width: 44 }} />}
+            <col style={{ minWidth: 200 }} />
+            <col style={{ minWidth: 180 }} />
+            <col style={{ minWidth: 200 }} />
+            <col style={{ minWidth: 120 }} />
+            <col style={{ minWidth: 120 }} />
+            {isRecruiter && <col style={{ minWidth: 220 }} />}
+            {isRecruiter && <col style={{ width: 60 }} />}
+            {isRecruiter && <col style={{ width: 44 }} />}
+          </colgroup>
+          <TableHeader>
+            <TableRow className="bg-[#F9FAFB] border-b border-[#EAECF0] hover:bg-[#F9FAFB]">
+              {isRecruiter && (
+                <TableHead className="px-3 py-3">
+                  <Checkbox checked={allSelected} onCheckedChange={() => onToggleAll?.()} aria-label="Select all" className="border-[#D0D5DD]" />
+                </TableHead>
+              )}
+              <Th>Name</Th>
+              <Th>Company</Th>
+              <Th>Stage</Th>
+              <Th>Fit</Th>
+              <Th>Location</Th>
+              {isRecruiter && <Th>Screen out reason</Th>}
+              {isRecruiter && <Th className="text-right">Visible</Th>}
+              {isRecruiter && <Th></Th>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((c) => {
+              const isRej = REJ.has(c.pipeline_stage);
+              return (
+                <TableRow key={c.id} className="h-[52px] border-b border-[#EAECF0] hover:bg-[#F9FAFB]">
+                  {isRecruiter && (
+                    <TableCell className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selected?.has(c.id) ?? false}
+                        onCheckedChange={() => onToggleRow?.(c.id)}
+                        aria-label={`Select ${c.name}`}
+                        className="border-[#D0D5DD]"
+                      />
+                    </TableCell>
+                  )}
+                  <TableCell className="px-3 py-3 align-middle text-sm font-medium text-[#101828]">
+                    {c.linkedin_url ? (
+                      <a href={c.linkedin_url} target="_blank" rel="noreferrer"
+                         className="inline-flex items-center gap-1.5 hover:text-[#1570EF]" title={c.name}>
+                        <span className="truncate">{c.name}</span>
+                        <ExternalLink className="h-4 w-4 text-[#667085] shrink-0" />
+                      </a>
+                    ) : (
+                      <Link to="/candidates/$id" params={{ id: c.id }}
+                            className="hover:text-[#1570EF]" title={c.name}>
+                        {c.name}
+                      </Link>
                     )}
-                    <TableCell className={`font-medium align-middle whitespace-nowrap py-1 pr-3 ${isRecruiter ? "sticky left-10 bg-card z-10 border-r border-border" : "sticky left-0 bg-card z-10 border-r border-border"}`}>
-                      <div className="flex items-center gap-1.5">
-                        {c.fit === "Target Fit" && <Star className="h-3 w-3 fill-[var(--metric-amber)] text-[var(--metric-amber)] shrink-0" />}
-                        {c.linkedin_url ? (
-                          <a href={c.linkedin_url} target="_blank" rel="noreferrer"
-                             className="hover:text-accent inline-flex items-center gap-1" title={c.name}>
-                            <span>{c.name}</span>
-                            <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
-                          </a>
-                        ) : (
-                          <Link to="/candidates/$id" params={{ id: c.id }}
-                                className="hover:text-accent" title={c.name}>
-                            {c.name}
-                          </Link>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground whitespace-nowrap" style={TINY}>
-                      {isRecruiter ? (
-                        <EditableText value={c.current_title} onSave={(v) => patch(c.id, { current_title: v })} placeholder="—" className="text-[8px] leading-3" />
-                      ) : (c.current_title ?? "—")}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground whitespace-nowrap" style={TINY}>
-                      {isRecruiter ? (
-                        <EditableText value={c.current_firm} onSave={(v) => patch(c.id, { current_firm: v })} placeholder="—" className="text-[8px] leading-3" />
-                      ) : (c.current_firm ?? "—")}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {isRecruiter ? (
-                        <EditableSelect
-                          value={c.pipeline_stage}
-                          options={PIPELINE_STAGES}
-                          onSave={(v) => patch(c.id, { pipeline_stage: v, ...(v && !REJ.has(v) ? { screen_out_reason: null } : {}) })}
-                          display={(v) => <StageBadge stage={String(v)} />}
-                        />
-                      ) : <StageBadge stage={c.pipeline_stage} />}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {isRecruiter ? (
-                        <EditableSelect
-                          value={c.fit}
-                          options={CANDIDATE_FITS}
-                          onSave={(v) => patch(c.id, { fit: v })}
-                          display={(v) => <FitChip value={v as CandidateFit} />}
-                        />
-                      ) : <FitChip value={c.fit} />}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                      {isRecruiter ? (
-                        <EditableSelect
-                          value={c.location_bucket} options={LOCATION_BUCKETS} allowEmpty
-                          onSave={(v) => patch(c.id, { location_bucket: v })}
-                        />
-                      ) : (c.location_bucket ?? "—")}
-                    </TableCell>
-                    {isRecruiter && (
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                  </TableCell>
+                  <TableCell className="px-3 py-3 align-middle text-sm text-[#475467]">
+                    {isRecruiter ? (
+                      <EditableText value={c.current_firm} onSave={(v) => patch(c.id, { current_firm: v })} placeholder="—" />
+                    ) : (c.current_firm ?? "—")}
+                  </TableCell>
+                  <TableCell className="px-3 py-3 align-middle">
+                    {isRecruiter ? (
+                      <EditableSelect
+                        value={c.pipeline_stage}
+                        options={PIPELINE_STAGES}
+                        onSave={(v) => patch(c.id, { pipeline_stage: v, ...(v && !REJ.has(v) ? { screen_out_reason: null } : {}) })}
+                        display={(v) => <StageBadge stage={String(v)} />}
+                      />
+                    ) : <StageBadge stage={c.pipeline_stage} />}
+                  </TableCell>
+                  <TableCell className="px-3 py-3 align-middle">
+                    {isRecruiter ? (
+                      <EditableSelect
+                        value={c.fit}
+                        options={CANDIDATE_FITS}
+                        onSave={(v) => patch(c.id, { fit: v })}
+                        display={(v) => <FitChip value={v as CandidateFit} />}
+                      />
+                    ) : <FitChip value={c.fit} />}
+                  </TableCell>
+                  <TableCell className="px-3 py-3 align-middle text-sm text-[#475467]">
+                    {isRecruiter ? (
+                      <EditableSelect
+                        value={c.location_bucket} options={LOCATION_BUCKETS} allowEmpty
+                        onSave={(v) => patch(c.id, { location_bucket: v })}
+                      />
+                    ) : (c.location_bucket ?? "—")}
+                  </TableCell>
+                  {isRecruiter && (
+                    <TableCell className="px-3 py-3 align-middle text-sm text-[#475467]">
+                      <div className="truncate" title={c.screen_out_reason ?? ""}>
                         <EditableSelect
                           value={c.screen_out_reason} options={SCREEN_OUT_REASONS} allowEmpty
                           disabled={!isRej}
                           placeholder={isRej ? "—" : "n/a"}
                           onSave={(v) => patch(c.id, { screen_out_reason: v })}
                         />
-                      </TableCell>
-                    )}
-                    {isRecruiter && (
-                      <TableCell className="text-right">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setPendingId(c.id); toggleVis.mutate(c, { onSettled: () => setPendingId(null) }); }}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"
-                          aria-label="Toggle client visibility"
-                          disabled={pendingId === c.id}
-                        >
-                          {c.client_visible ? <Eye className="h-4 w-4 text-accent" /> : <EyeOff className="h-4 w-4" />}
-                        </button>
-                      </TableCell>
-                    )}
-                    {isRecruiter && (
-                      <TableCell className="text-right">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setConfirmDelete(c); }}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                          aria-label={`Delete ${c.name}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </ScrollSyncContainer>
+                      </div>
+                    </TableCell>
+                  )}
+                  {isRecruiter && (
+                    <TableCell className="px-3 py-3 align-middle text-right">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setPendingId(c.id); toggleVis.mutate(c, { onSettled: () => setPendingId(null) }); }}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-[#F2F4F7] text-[#667085] hover:text-[#101828]"
+                        aria-label="Toggle client visibility"
+                        disabled={pendingId === c.id}
+                      >
+                        {c.client_visible ? <Eye className="h-4 w-4 text-[#1570EF]" /> : <EyeOff className="h-4 w-4" />}
+                      </button>
+                    </TableCell>
+                  )}
+                  {isRecruiter && (
+                    <TableCell className="px-3 py-3 align-middle text-right">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmDelete(c); }}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#667085] hover:bg-[#FEF3F2] hover:text-[#B42318]"
+                        aria-label={`Delete ${c.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </TableCell>
+                  )}
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </div>
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
@@ -289,32 +289,12 @@ export function CandidatesTable({
   );
 }
 
-/** Top + bottom horizontal scrollbars, kept in sync. */
-function ScrollSyncContainer({ children }: { children: React.ReactNode }) {
-  const topRef = (el: HTMLDivElement | null) => {
-    if (!el) return;
-    const main = el.nextElementSibling as HTMLDivElement | null;
-    if (!main || (el as HTMLDivElement & { _wired?: boolean })._wired) return;
-    (el as HTMLDivElement & { _wired?: boolean })._wired = true;
-    const inner = el.firstElementChild as HTMLDivElement;
-    const sync = (from: HTMLElement, to: HTMLElement) => {
-      let lock = false;
-      from.addEventListener("scroll", () => {
-        if (lock) { lock = false; return; }
-        lock = true;
-        to.scrollLeft = from.scrollLeft;
-      });
-    };
-    sync(el, main);
-    sync(main, el);
-    const ro = new ResizeObserver(() => { inner.style.width = `${main.scrollWidth}px`; });
-    ro.observe(main);
-    inner.style.width = `${main.scrollWidth}px`;
-  };
+function Th({ children, className }: { children?: React.ReactNode; className?: string }) {
   return (
-    <>
-      <div ref={topRef} className="overflow-x-auto h-3"><div className="h-px" /></div>
-      <div className="overflow-x-auto">{children}</div>
-    </>
+    <TableHead
+      className={`px-3 py-3 h-auto text-[11px] font-medium uppercase tracking-[0.05em] text-[#475467] ${className ?? ""}`}
+    >
+      {children}
+    </TableHead>
   );
 }
