@@ -68,6 +68,19 @@ export function CandidateFilters({
           </Select>
         </>
       )}
+      {value.seniority && (
+        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs">
+          Seniority: {SENIORITY_LABEL[value.seniority] ?? value.seniority}
+          <button
+            type="button"
+            className="ml-0.5 text-muted-foreground hover:text-foreground"
+            onClick={() => onChange({ ...value, seniority: "" })}
+            aria-label="Clear seniority filter"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </span>
+      )}
       {has && (
         <Button variant="ghost" size="sm" onClick={() => onChange(defaultFilters)}>
           <X className="h-3.5 w-3.5 mr-1" /> Clear
