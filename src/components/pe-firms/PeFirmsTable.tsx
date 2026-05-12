@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -50,6 +50,28 @@ export function PeFirmsTable({ rows }: { rows: Firm[] }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const topRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [scrollW, setScrollW] = useState(0);
+
+  useEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    const update = () => setScrollW(el.scrollWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const syncing = useRef(false);
+  const onScroll = (src: "top" | "bottom") => (e: React.UIEvent<HTMLDivElement>) => {
+    if (syncing.current) { syncing.current = false; return; }
+    const other = src === "top" ? bottomRef.current : topRef.current;
+    if (other) { syncing.current = true; other.scrollLeft = e.currentTarget.scrollLeft; }
+  };
+
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s) return rows;
@@ -78,90 +100,85 @@ export function PeFirmsTable({ rows }: { rows: Firm[] }) {
           <p className="text-sm text-muted-foreground">No firms match.</p>
         </div>
       ) : (
-        <div className="rounded-lg border border-border bg-card overflow-x-auto shadow-[var(--shadow-card)]">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-[220px]">Name</TableHead>
-                <TableHead>AUM ($B)</TableHead>
-                <TableHead>HQ</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Layer</TableHead>
-                <TableHead>Next Layer Tag</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Source of AUM</TableHead>
-                <TableHead>Website</TableHead>
-                <TableHead className="w-10"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((f) => {
-                const href = normalizeUrl(f.website);
-                return (
-                  <TableRow key={f.id}>
-                    <TableCell className="font-medium min-w-[220px]">
-                      <div className="flex items-center gap-1.5 whitespace-nowrap">
-                        {href ? (
-                          <a href={href} target="_blank" rel="noreferrer" className="hover:text-accent inline-flex items-center gap-1 text-sm">
-                            {f.name}
-                            <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                          </a>
-                        ) : (
-                          <EditableText value={f.name} onSave={(v) => patch(f.id, { name: v ?? f.name })} className="text-sm" />
-                        )}
-                      </div>
-                      {href && (
-                        <div className="mt-0.5">
-                          <EditableText value={f.name} onSave={(v) => patch(f.id, { name: v ?? f.name })} className="text-xs text-muted-foreground" placeholder="edit name" />
+        <div className="space-y-1">
+          <div ref={topRef} onScroll={onScroll("top")} className="overflow-x-auto rounded-md border border-border bg-card/50">
+            <div style={{ width: scrollW, height: 1 }} />
+          </div>
+          <div
+            ref={bottomRef}
+            onScroll={onScroll("bottom")}
+            className="rounded-lg border border-border bg-card overflow-x-auto shadow-[var(--shadow-card)]"
+          >
+            <div ref={innerRef}>
+            <Table className="text-xs [&_th]:h-8 [&_th]:px-2 [&_th]:py-1 [&_td]:px-2 [&_td]:py-1.5">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[180px]">Name</TableHead>
+                  <TableHead className="w-[80px]">AUM ($B)</TableHead>
+                  <TableHead className="w-[120px]">HQ</TableHead>
+                  <TableHead className="w-[120px]">Location</TableHead>
+                  <TableHead className="w-[110px]">Layer</TableHead>
+                  <TableHead className="w-[120px]">Next Layer Tag</TableHead>
+                  <TableHead className="w-[110px]">Status</TableHead>
+                  <TableHead className="w-[160px]">Source of AUM</TableHead>
+                  <TableHead className="w-[140px]">Website</TableHead>
+                  <TableHead className="w-8"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((f) => {
+                  const href = normalizeUrl(f.website);
+                  return (
+                    <TableRow key={f.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-1.5 whitespace-nowrap">
+                          {href ? (
+                            <a href={href} target="_blank" rel="noreferrer" className="hover:text-accent inline-flex items-center gap-1">
+                              {f.name}
+                              <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                            </a>
+                          ) : (
+                            <EditableText value={f.name} onSave={(v) => patch(f.id, { name: v ?? f.name })} />
+                          )}
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm tabular-nums">
-                      <EditableText
-                        value={f.aum_b == null ? "" : String(f.aum_b)}
-                        onSave={(v) => {
-                          if (!v) return patch(f.id, { aum_b: null });
-                          const n = Number(v.replace(/[$,_\s]/g, ""));
-                          patch(f.id, { aum_b: Number.isFinite(n) ? n : null });
-                        }}
-                        placeholder="—"
-                      />
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      <EditableText value={f.hq} onSave={(v) => patch(f.id, { hq: v })} placeholder="—" />
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      <EditableText value={f.location} onSave={(v) => patch(f.id, { location: v })} placeholder="—" />
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      <EditableText value={f.layer} onSave={(v) => patch(f.id, { layer: v })} placeholder="—" />
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      <EditableText value={f.next_layer_tag} onSave={(v) => patch(f.id, { next_layer_tag: v })} placeholder="—" />
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      <EditableSelect value={f.status} options={PE_STATUSES} onSave={(v) => patch(f.id, { status: v ?? "Target" })} />
-                    </TableCell>
-                    <TableCell className="text-sm max-w-[24ch]">
-                      <EditableText value={f.aum_source} onSave={(v) => patch(f.id, { aum_source: v })} placeholder="—" />
-                    </TableCell>
-                    <TableCell className="text-sm max-w-[24ch]">
-                      <EditableText value={f.website} onSave={(v) => patch(f.id, { website: v })} placeholder="—" />
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="icon" variant="ghost"
-                        onClick={() => { if (confirm(`Remove ${f.name}?`)) delMut.mutate(f.id); }}
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                        {href && (
+                          <EditableText value={f.name} onSave={(v) => patch(f.id, { name: v ?? f.name })} className="text-[10px] text-muted-foreground" placeholder="edit name" />
+                        )}
+                      </TableCell>
+                      <TableCell className="tabular-nums">
+                        <EditableText
+                          value={f.aum_b == null ? "" : String(f.aum_b)}
+                          onSave={(v) => {
+                            if (!v) return patch(f.id, { aum_b: null });
+                            const n = Number(v.replace(/[$,_\s]/g, ""));
+                            patch(f.id, { aum_b: Number.isFinite(n) ? n : null });
+                          }}
+                          placeholder="—"
+                        />
+                      </TableCell>
+                      <TableCell><EditableText value={f.hq} onSave={(v) => patch(f.id, { hq: v })} placeholder="—" /></TableCell>
+                      <TableCell><EditableText value={f.location} onSave={(v) => patch(f.id, { location: v })} placeholder="—" /></TableCell>
+                      <TableCell><EditableText value={f.layer} onSave={(v) => patch(f.id, { layer: v })} placeholder="—" /></TableCell>
+                      <TableCell><EditableText value={f.next_layer_tag} onSave={(v) => patch(f.id, { next_layer_tag: v })} placeholder="—" /></TableCell>
+                      <TableCell><EditableSelect value={f.status} options={PE_STATUSES} onSave={(v) => patch(f.id, { status: v ?? "Target" })} /></TableCell>
+                      <TableCell className="max-w-[160px] truncate"><EditableText value={f.aum_source} onSave={(v) => patch(f.id, { aum_source: v })} placeholder="—" /></TableCell>
+                      <TableCell className="max-w-[140px] truncate"><EditableText value={f.website} onSave={(v) => patch(f.id, { website: v })} placeholder="—" /></TableCell>
+                      <TableCell>
+                        <Button
+                          size="icon" variant="ghost"
+                          onClick={() => { if (confirm(`Remove ${f.name}?`)) delMut.mutate(f.id); }}
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            </div>
+          </div>
         </div>
       )}
     </div>
