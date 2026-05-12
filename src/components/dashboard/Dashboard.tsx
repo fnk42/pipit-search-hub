@@ -78,10 +78,10 @@ export function Dashboard() {
 function SeniorityRow({ data, loading }: { data?: DashboardData; loading: boolean }) {
   const navigate = useNavigate();
   const s = data?.seniority;
-  const tiles: { label: string; value: number | undefined; tone: MetricTone; search: string; sub: string }[] = [
-    { label: "Too senior (MD / Principal / Head of)", value: s?.tooSenior, tone: "clay", search: "Managing Director", sub: "Captured but out of scope" },
-    { label: "VP / SVP / EVP sourced", value: s?.vp, tone: "indigo", search: "VP", sub: "In scope — vice president level" },
-    { label: "Senior Associates sourced", value: s?.seniorAssociate, tone: "sage", search: "Senior Associate", sub: "In scope — associate level" },
+  const tiles: { label: string; value: number | undefined; tone: MetricTone; seniority: "vp" | "seniorAssociate" | "tooSenior"; sub: string }[] = [
+    { label: "Too senior (MD / Principal / Head of)", value: s?.tooSenior, tone: "clay", seniority: "tooSenior", sub: "Captured but out of scope" },
+    { label: "VP / SVP / EVP sourced", value: s?.vp, tone: "indigo", seniority: "vp", sub: "In scope — vice president level" },
+    { label: "Senior Associates sourced", value: s?.seniorAssociate, tone: "sage", seniority: "seniorAssociate", sub: "In scope — associate level" },
   ];
   return (
     <div>
