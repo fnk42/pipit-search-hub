@@ -210,8 +210,10 @@ export const getDashboardData = createServerFn({ method: "GET" })
       weekly: {
         addedToday,
         addedThisWeek,
+        addedThisMonth,
         rejectedByTransformariThisWeek,
         rejectedPctThisWeek,
+        acceptedPct,
       },
       funnel,
       geography,
