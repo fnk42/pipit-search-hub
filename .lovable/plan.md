@@ -1,113 +1,74 @@
-## Untitled UI redesign — candidate tracker
+## Polish pass — Name+Title stacked, uniform fonts, smaller badges, no overlap
 
-A full visual overhaul of the candidates page (table, filters, tabs, badges) and the dashboard's State Breakdown chart, using Untitled UI tokens. Strictly visual + minor structural fixes — no DB or business-logic changes (except the existing seniority math, which is already correct).
+### 1. Name cell: stacked Name + Title
 
-### 1. Design tokens (`src/styles.css`)
-
-Add Untitled UI palette as CSS variables alongside the existing tokens (don't rip out the existing parchment theme; new tokens are additive and used only by candidate views):
+Restore Title (`current_title`) as a second line beneath the candidate name in the Name column — keeps it visible without needing a dedicated column.
 
 ```
---uui-bg:        #FFFFFF;
---uui-row-hover: #F9FAFB;
---uui-header-bg: #F9FAFB;
---uui-border:    #EAECF0;
---uui-text:      #101828;
---uui-text-2:    #475467;
---uui-text-3:    #667085;
---uui-input-border: #D0D5DD;
---uui-blue-600:  #1570EF;
---uui-blue-50:   #EFF8FF;
---uui-blue-100:  #E0EAFF;
---uui-focus-ring: 0 0 0 4px #E0EAFF;
-/* badge tones: red, amber, green, blue, neutral as listed in prompt */
+[Name]  ↗            ← row 1: 13px, font-medium, #101828
+[Title]              ← row 2: 11px, font-normal, #475467, truncate
 ```
 
-Import Inter from Google Fonts in `index.html` (or via `@import` at top of styles.css). `--font-sans` already targets Inter.
+- Both lines wrapped in a single `<div>` so the link/external-icon affordance stays on the name only.
+- Title is read-only here (still editable from the candidate detail page).
+- Empty title: render nothing (no "—" placeholder; keeps row visually clean).
 
-### 2. Tabs — Untitled UI underline style
+### 2. Row height grows to fit two lines
 
-Replace the boxed shadcn `TabsList` on the candidates page with a custom underline tab bar:
-- Container: `border-b border-[--uui-border]`
-- Each tab: `px-1 pb-3 -mb-px text-sm font-semibold`
-- Active: `text-[--uui-blue-600] border-b-2 border-[--uui-blue-600]`
-- Inactive: `text-[--uui-text-3] border-b-2 border-transparent hover:text-[--uui-text]`
-- Counts inline in same color, no separate badge
+- Row min-height: `64px` (was `52px`).
+- Vertical padding: `py-2.5` per cell.
+- All other cells use `align-middle` so single-line content (Stage badge, Fit badge, Location, etc.) sits centered against the taller Name cell.
 
-Implemented inline in `candidates.tsx` (don't touch shared `tabs.tsx`).
+### 3. Selected-row gray shading
 
-### 3. Filter bar (`CandidateFilters.tsx`)
+When `selected.has(c.id)` is true → `<TableRow className="bg-[#F9FAFB]">`. Same gray as hover. Fixes the "white name area" reading against gray rows.
 
-- Container: `flex flex-wrap gap-3 bg-white border-[--uui-border] rounded-lg p-3` (or remove card chrome entirely — use plain row).
-- Search input: `h-10 rounded-lg border-[--uui-input-border] pl-10 text-sm` with 20px `Search` icon at left, color `--uui-text-3`. Focus: blue border + 4px halo.
-- Dropdowns: same `h-10 rounded-lg border-[--uui-input-border]` triggers; widen to `min-w-[160px]`. Override shadcn `SelectTrigger` className locally.
-- Wrap to next line on small screens (already does).
+### 4. Smaller, uniform badges (Stage + Fit)
 
-### 4. Table — `CandidatesTable.tsx`
+Both `StageBadge` and `FitChip`:
+- Padding `px-1.5 py-0`
+- Text `text-[11px] font-medium leading-[18px]`
+- Radius `rounded` (4px)
+- Soft-tint colors unchanged.
 
-**Column structure** (single source of truth — strip current sticky/8px Title column):
+### 5. Single uniform font scale
 
-| # | Column | Min width | Notes |
-|---|--------|-----------|-------|
-| 1 | Checkbox | 44px | recruiter only |
-| 2 | Name | 200px | name + external link icon ONLY (no star, no title overlay) |
-| 3 | Company | 180px | `current_firm`, secondary text |
-| 4 | Stage | 200px | badge |
-| 5 | Fit | 120px | badge |
-| 6 | Location | 120px | text |
-| 7 | Screen out reason | 220px | truncate w/ tooltip, recruiter only |
-| 8 | Visible | 60px | eye toggle, recruiter only |
-| 9 | Delete | 44px | trash icon, recruiter only |
+- Column headers: `text-[12px] font-medium uppercase tracking-[0.04em] text-[#475467]`
+- Body cells (Company, Location, Screen-out, editable text/select): `text-[12px] leading-5`
+- Name (line 1): `text-[13px] font-medium text-[#101828]`
+- Title (line 2): `text-[11px] text-[#475467]`
+- Badges: `text-[11px]`
+- Drop hardcoded `text-sm` and `text-[8px]` from `EditableText` / `EditableSelect` — let parent cell font cascade.
 
-**Removed**: separate Title column (8px), Owner, Sourced By, Sourced Date, Star icon in Name cell, sticky-left positioning. The "Title" data is dropped from the table view (still editable via candidate detail page).
+### 6. Column widths — no overlap, no horizontal scroll at 1280px+
 
-**Header row**: `bg-[--uui-header-bg] border-b border-[--uui-border]`; `<th>` text `text-[11px] font-medium uppercase tracking-[0.05em] text-[--uui-text-2] px-3 py-3`.
+Drop the separate Company column (it was duplicating Title/Firm info that now lives stacked under Name). Wait — Company stays as its own column per the prior spec; it shows `current_firm` (firm name), Title shows `current_title` (job title). Keep both.
 
-**Body rows**: `h-[52px] border-b border-[--uui-border] hover:bg-[--uui-row-hover]`. Cells `px-3 py-3 align-middle text-sm`. Name = `font-medium text-[--uui-text]`; Company/Location/Screen = `text-[--uui-text-2] font-normal`.
+Recomputed budget for recruiter view (≈1280px content area):
 
-**Name cell fix**: render only `<a>{name} <ExternalLink/></a>` (or `<Link>` if no LinkedIn). Remove the `flex items-center gap-1.5` Star wrapper. The Target Fit star indicator moves to the **Fit** badge column (kept inline with the badge as a small leading icon) so the Name column has zero extra elements.
+| Column | Width | Notes |
+|---|---|---|
+| Checkbox | 44px | fixed |
+| Name + Title | flex (~280px+) | only flexible column; both lines truncate |
+| Company | 180px | truncate |
+| Stage | 170px | smaller badge fits |
+| Fit | 110px | |
+| Location | 110px | |
+| Screen-out reason | 200px | truncate w/ tooltip |
+| Visible | 60px | icon |
+| Delete | 44px | icon |
 
-**Checkbox**: shadcn `Checkbox` already 16x16; pass className for `border-[--uui-input-border] rounded` to match.
+Sum fixed = ~918px → Name flexes to ~360px at 1280px. No overflow.
 
-**Auto-stretch**: drop `w-auto min-w-full` and `whitespace-nowrap` on long-text cells; use `table-fixed` with explicit `<colgroup>` setting min widths above. At ≥1280px the table fills horizontally without scroll.
-
-**Inline edit affordance** (item 10): update `EditableCell.tsx` Input/Select trigger className: when editing, apply `border-[--uui-blue-600] shadow-[var(--uui-focus-ring)]`. Behavior (Enter save / Esc cancel / blur save) already correct.
-
-### 5. Badges — soft-tint Untitled UI
-
-Rewrite `StageBadge.tsx` tone map to:
-- Red (Rejected by Transformari): `bg-[#FEF3F2] text-[#B42318] border-[#FECDCA]`
-- Amber (Rejected by Candidate, In Progress alt): `bg-[#FFFAEB] text-[#B54708] border-[#FEDF89]`
-- Green (Approved/Shortlisted/Placed/Reached Out variants): `bg-[#ECFDF3] text-[#067647] border-[#ABEFC6]`
-- Blue (Screening/In Progress): `bg-[#EFF8FF] text-[#175CD3] border-[#B2DDFF]`
-- Neutral (Sourced/Unassessed/default): `bg-[#F2F4F7] text-[#344054] border-[#EAECF0]`
-
-Badge shape: `inline-flex items-center px-2 py-0.5 rounded-md border text-xs font-medium`. Replace the current pill (`rounded-full`, oklch fills).
-
-Update `FIT_CLASS` in `CandidatesTable.tsx` similarly: Target Fit → green soft tint with leading 12px star; others → neutral.
-
-### 6. Dashboard — State Breakdown bars
-
-In `Dashboard.tsx` `StatCardsRow` Geography chart, swap palette to `["#1570EF", "#B54708", "#067647", "#7A5AF8", "#E31B54"]` and set `<Bar radius={[4,4,0,0]}>`. (No other dashboard changes.)
-
-### 7. Items already satisfied — no further work
-
-- VP + Senior Associate + Other = Total (already enforced server-side, item 11 only re-asserts existing behavior).
-- Seniority filter chip + Total clear (already implemented in `candidates.tsx`).
-- Inline editing exists; only the focus ring styling is updated (item 10 above).
-
-### Files touched
-
-- `src/styles.css` — add Untitled UI tokens + Inter import
-- `src/components/candidates/CandidatesTable.tsx` — column overhaul, Name cell cleanup, Untitled UI styling, FIT_CLASS rewrite
-- `src/components/candidates/CandidateFilters.tsx` — input/select restyle
-- `src/components/candidates/StageBadge.tsx` — soft-tint tone map
-- `src/components/candidates/EditableCell.tsx` — focus ring on edit state
-- `src/routes/_authenticated/candidates.tsx` — underline tab bar
-- `src/components/dashboard/Dashboard.tsx` — Geography palette swap
+- Use `table-auto` (drop `table-fixed` + colgroup) and apply per-cell `max-w-[Npx]` + `truncate` so any long string ellipses instead of pushing neighbors.
+- Each truncated cell gets a `title={value}` tooltip.
 
 ### Out of scope
 
-- No DB migrations
-- No changes to server functions, auth, or routing
-- No mobile-card redesign (keeps current layout — desktop overhaul only)
-- No changes to other dashboards/charts beyond Geography bars
+- Filters, tabs, dashboard, mobile cards, server, DB — unchanged.
+
+### Files touched
+
+- `src/components/candidates/CandidatesTable.tsx` — Name+Title stack, row height, selected-row class, font scale, column widths, truncate wrappers
+- `src/components/candidates/StageBadge.tsx` — smaller badge geometry
+- `src/components/candidates/EditableCell.tsx` — drop hardcoded `text-sm` so font cascades
