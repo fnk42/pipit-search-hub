@@ -50,27 +50,7 @@ export function PeFirmsTable({ rows }: { rows: Firm[] }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const topRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-  const [scrollW, setScrollW] = useState(0);
 
-  useEffect(() => {
-    const el = innerRef.current;
-    if (!el) return;
-    const update = () => setScrollW(el.scrollWidth);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const syncing = useRef(false);
-  const onScroll = (src: "top" | "bottom") => (e: React.UIEvent<HTMLDivElement>) => {
-    if (syncing.current) { syncing.current = false; return; }
-    const other = src === "top" ? bottomRef.current : topRef.current;
-    if (other) { syncing.current = true; other.scrollLeft = e.currentTarget.scrollLeft; }
-  };
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
