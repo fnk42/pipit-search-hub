@@ -61,6 +61,7 @@ export function Dashboard() {
 
       <EngagementSummary data={data} loading={isLoading} />
       {role === "recruiter" && <WeeklyStats data={data} loading={isLoading} />}
+      {role === "recruiter" && <SeniorityRow data={data} loading={isLoading} />}
       <PipelineFunnel data={data} loading={isLoading} />
       {role === "recruiter" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -70,6 +71,36 @@ export function Dashboard() {
       )}
       <StatCardsRow data={data} loading={isLoading} role={role} />
       {role === "recruiter" && <RecentActivity data={data} loading={isLoading} />}
+    </div>
+  );
+}
+
+function SeniorityRow({ data, loading }: { data?: DashboardData; loading: boolean }) {
+  const navigate = useNavigate();
+  const s = data?.seniority;
+  const tiles: { label: string; value: number | undefined; tone: MetricTone; search: string; sub: string }[] = [
+    { label: "Too senior (MD / Principal / Head of)", value: s?.tooSenior, tone: "clay", search: "Managing Director", sub: "Captured but out of scope" },
+    { label: "VP / SVP / EVP sourced", value: s?.vp, tone: "indigo", search: "VP", sub: "In scope — vice president level" },
+    { label: "Senior Associates sourced", value: s?.seniorAssociate, tone: "sage", search: "Senior Associate", sub: "In scope — associate level" },
+  ];
+  return (
+    <div>
+      <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground mb-2">Sourced seniority</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        {tiles.map((t) => (
+          <button
+            key={t.label}
+            onClick={() => navigate({ to: "/candidates", search: { search: t.search } })}
+            className={cn("p-5 border-0 shadow-[var(--shadow-soft)] rounded-lg text-left hover:shadow-[var(--shadow-card)] transition-shadow", TONE_BG[t.tone])}
+          >
+            <p className="text-[11px] uppercase tracking-[0.14em] text-foreground/60">{t.label}</p>
+            <p className={cn("mt-2 text-3xl font-semibold tabular-nums tracking-tight", TONE_FG[t.tone])}>
+              {loading ? "…" : String(t.value ?? 0)}
+            </p>
+            <p className="mt-1 text-[11px] text-muted-foreground">{t.sub}</p>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

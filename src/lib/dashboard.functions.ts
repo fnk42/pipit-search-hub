@@ -23,6 +23,7 @@ export type DashboardData = {
   rejectionByReason: { week: { name: string; count: number }[]; all: { name: string; count: number }[] };
   topFirms: { firm: string; count: number }[];
   peCoverage: { sourced: number; total: number };
+  seniority: { vp: number; seniorAssociate: number; tooSenior: number };
   activity: { id: string; created_at: string; user_name: string | null; description: string }[];
 };
 
@@ -55,13 +56,13 @@ export const getDashboardData = createServerFn({ method: "GET" })
 
     const { data: candidates } = await supabase
       .from("candidates")
-      .select("id, created_at, updated_at, date_sourced, pipeline_stage, location_bucket, ir_functions, shortlisted, screen_out_reason, current_firm");
+      .select("id, created_at, updated_at, date_sourced, pipeline_stage, location_bucket, ir_functions, shortlisted, screen_out_reason, current_firm, current_title");
 
     const list = (candidates ?? []) as Array<{
       id: string; created_at: string; updated_at: string; date_sourced: string | null;
       pipeline_stage: string; location_bucket: string | null;
       ir_functions: string[]; shortlisted: boolean;
-      screen_out_reason: string | null; current_firm: string | null;
+      screen_out_reason: string | null; current_firm: string | null; current_title: string | null;
     }>;
 
     const searchInitiated = list.length
@@ -139,6 +140,22 @@ export const getDashboardData = createServerFn({ method: "GET" })
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
+    // Seniority buckets from current_title (case-insensitive). Order matters: too senior takes priority.
+    const TOO_SENIOR_RE = /\b(managing director|md|principal|head of|partner|chief|cio|cfo|coo|ceo|president)\b/i;
+    const VICE_PRES_RE = /\bvice president\b/i;
+    const VP_RE = /\b(vp|svp|evp)\b/i;
+    const SR_ASSOC_RE = /\b(senior associate|sr\.? associate)\b/i;
+    let vp = 0, seniorAssociate = 0, tooSenior = 0;
+    for (const c of list) {
+      const t = (c.current_title ?? "").toString();
+      if (!t) continue;
+      // "too senior" wins over VP unless the only senior match is "vice president"
+      const tooSeniorHit = TOO_SENIOR_RE.test(t) && !(VICE_PRES_RE.test(t) && !/(managing director|\bmd\b|principal|head of|partner|chief|\bcio\b|\bcfo\b|\bcoo\b|\bceo\b|president)/i.test(t));
+      if (tooSeniorHit) { tooSenior++; continue; }
+      if (VP_RE.test(t) || VICE_PRES_RE.test(t)) { vp++; continue; }
+      if (SR_ASSOC_RE.test(t)) { seniorAssociate++; continue; }
+    }
+
     let peCoverage = { sourced: 0, total: TOTAL_PE_UNIVERSE };
     let activity: DashboardData["activity"] = [];
 
@@ -193,6 +210,7 @@ export const getDashboardData = createServerFn({ method: "GET" })
       rejectionByReason: { week: rejectionByReasonWeek, all: rejectionByReasonAll },
       topFirms,
       peCoverage,
+      seniority: { vp, seniorAssociate, tooSenior },
       activity,
     };
   });

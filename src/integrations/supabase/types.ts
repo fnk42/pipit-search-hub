@@ -137,40 +137,61 @@ export type Database = {
       }
       pe_firms: {
         Row: {
+          aum_b: number | null
+          aum_source: string | null
           aum_usd: number | null
           created_at: string
+          hq: string | null
           hq_city: string | null
           hq_state: string | null
           id: string
+          layer: string | null
+          location: string | null
           name: string
+          next_layer_tag: string | null
           notes: string | null
           status: Database["public"]["Enums"]["pe_status"]
           tier: Database["public"]["Enums"]["pe_tier"] | null
           updated_at: string
+          website: string | null
         }
         Insert: {
+          aum_b?: number | null
+          aum_source?: string | null
           aum_usd?: number | null
           created_at?: string
+          hq?: string | null
           hq_city?: string | null
           hq_state?: string | null
           id?: string
+          layer?: string | null
+          location?: string | null
           name: string
+          next_layer_tag?: string | null
           notes?: string | null
           status?: Database["public"]["Enums"]["pe_status"]
           tier?: Database["public"]["Enums"]["pe_tier"] | null
           updated_at?: string
+          website?: string | null
         }
         Update: {
+          aum_b?: number | null
+          aum_source?: string | null
           aum_usd?: number | null
           created_at?: string
+          hq?: string | null
           hq_city?: string | null
           hq_state?: string | null
           id?: string
+          layer?: string | null
+          location?: string | null
           name?: string
+          next_layer_tag?: string | null
           notes?: string | null
           status?: Database["public"]["Enums"]["pe_status"]
           tier?: Database["public"]["Enums"]["pe_tier"] | null
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }

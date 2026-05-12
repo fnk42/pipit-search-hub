@@ -1,63 +1,78 @@
-## New color scheme: "Warm Slate + Sage"
+## 1. Seniority metrics (Dashboard)
 
-The current navy + gold + bright white is heavy and reads "corporate banking". Here's a softer, more editorial palette that keeps the recruiter/client CRM serious but gives the dashboard breathing room and lets metrics carry meaning through color.
+Derive from `current_title` (case-insensitive). No schema changes.
 
-### Direction
+**Buckets** (in this order so "MD / VP" → Too senior):
+1. **Too senior** — `\b(managing director|md|principal|head of|partner|chief|cio|cfo|coo|ceo|president)\b` (excluding "vice president")
+2. **VP-level** — `\b(vp|svp|evp|vice president)\b`
+3. **Senior Associate** — `senior associate` or `sr\.? associate`
 
-- **Surfaces:** warm off-white parchment instead of sterile white, with a faint cream tint. Sidebar shifts from dark navy to a deep **slate teal** — still grounded, less "tech bro".
-- **Accent:** muted **sage green** as primary action color (instead of saturated gold). Gold becomes a secondary highlight reserved for shortlist stars and "watch" states.
-- **Text:** slightly warmer near-black (graphite), not pure black.
-- **Hairlines:** soft taupe borders rather than cool grey.
+**Backend** — `src/lib/dashboard.functions.ts`: include `current_title`, return `seniority: { vp, seniorAssociate, tooSenior }`.
 
-```text
-Background    parchment       oklch(0.985 0.006 85)
-Foreground    graphite        oklch(0.24 0.015 250)
-Card          warm white      oklch(0.995 0.004 85)
-Sidebar       slate teal      oklch(0.30 0.025 200)
-Primary       sage            oklch(0.58 0.075 155)
-Accent        soft amber      oklch(0.80 0.105 75)
-Border        warm taupe      oklch(0.90 0.008 80)
-```
+**UI** — `Dashboard.tsx` (recruiter only): a "Sourced seniority" row with 3 colored tiles, each clickable to `/candidates?search=<keyword>`.
 
-### Metric color coding (semantic, not decorative)
+## 2. PE Firms (CRUD + manual add + CSV import)
 
-Each dashboard tile gets its own tinted background + matching number color. Same hue family across the app so the meaning stays consistent.
+### Schema migration — extend `public.pe_firms`
+Add (all nullable, only `name` required):
+- `aum_b numeric` (AUM in $B)
+- `hq text`, `location text`
+- `layer text`, `next_layer_tag text`
+- `aum_source text`
+- `website text` (for clickable company link)
 
-| Metric | Hue | Background | Number |
-|---|---|---|---|
-| Added today | sage | `oklch(0.96 0.025 155)` | `oklch(0.45 0.10 155)` |
-| Added this week | sky | `oklch(0.96 0.025 230)` | `oklch(0.45 0.10 230)` |
-| Rejected by Transformari | clay | `oklch(0.95 0.03 35)` | `oklch(0.50 0.13 35)` |
-| % rejected | mauve | `oklch(0.96 0.02 320)` | `oklch(0.45 0.10 320)` |
-| Top firms / engagement | indigo | `oklch(0.96 0.025 270)` | `oklch(0.45 0.10 270)` |
+Existing `aum_usd`, `hq_city`, `hq_state` stay in DB but UI stops using them. RLS unchanged (recruiter-only).
 
-Charts use the same five hues so a bar's color matches its stat tile — no rainbow palettes, no random pastels.
+### `/pe-firms` page (replaces ComingSoon)
+- Searchable table: **Name · AUM ($B) · HQ · Location · Layer · Next Layer Tag · Status · Source of AUM**.
+- **Name cell** renders as a link to `website` (new tab + ExternalLink icon) when set; plain text otherwise — mirrors candidate→LinkedIn pattern.
+- All cells editable inline via `EditableCell` (Name and Website included; Website edited via its own column or affordance next to the name).
+- **Add firm dialog** for manual entry. Only **Name** required; everything else optional including Website.
 
-### Stage badge palette (funnel-aware)
+### Server fns — `src/lib/pe-firms.functions.ts`
+`listPeFirms`, `createPeFirm`, `updatePeFirm`, `deletePeFirm` — recruiter-gated via RLS.
 
-Stages already have a `StageBadge` component. New mapping:
+### CSV import
+- Update `peFirmRowSchema`, `PE_FIELDS`, `PE_HEADER_ALIASES` in `src/lib/csv-schemas.ts`. Name required; others optional. Aliases: Name, AUM (B)/AUM, HQ, Location, Layer, Next Layer Tag, Source of AUM Figure, Website/URL.
+- Existing `/import` PE Firms tab uses `CsvImporter` + `importPeFirms` automatically once schema updates.
 
-| Group | Color |
-|---|---|
-| `Sourced`, `For Sean…` | neutral taupe |
-| `Reached Out`, `Reached Out-Referral` | sky |
-| `Responded/Scheduled…`, `Profile Screened…` | sage |
-| `Initial Screening`, `Final Screening` | indigo |
-| `Client Interviews`, `Offer`, `Placed` | amber → deepening |
-| `Rejected by …` (4 variants) | 4 different clay/dusty-rose tints so the "who" reads at a glance |
+## 3. Candidates table polish
 
-### Implementation surface
+**Merge Name / Title / Company into one column** (`CandidatesTable.tsx`):
+- Drop the separate Title and Company `<TableHead>`/`<TableCell>` pairs.
+- The merged "Name" cell renders two stacked lines:
+  - **Line 1**: name (bold, normal size). Linked to `linkedin_url` (new tab + ExternalLink) if present, else plain text. Star icon retained when shortlisted.
+  - **Line 2**: `current_title · current_firm` in smaller muted text (`text-xs text-muted-foreground`). Em-dash if both empty; just one if only one is set.
+- Cell uses `min-w-[260px]` and the lines use `truncate` with `whitespace-nowrap` to stay tight on one line each.
+- Inline editing for title/company moves into this cell — small "edit" affordance on hover (or click-to-edit on the muted line) using existing `EditableText`. Keeps recruiter inline-edit functionality intact.
+- Drop the broken `<FileText>` "open details" icon (stub detail page).
 
-Single file edit: `src/styles.css` — replace the `:root` token block with the new oklch values plus 5 new chart tokens (`--metric-sage`, `--metric-sky`, `--metric-clay`, `--metric-mauve`, `--metric-indigo`) and matching `-bg` variants. Components that already use semantic tokens (`bg-card`, `text-primary`, `bg-accent`, etc.) auto-update. Only `StageBadge` and the new dashboard stat cards need new className branches to pick the per-stage / per-metric hue.
+Result: 3 columns collapse to 1, table is tighter, names no longer line-break, secondary info stays visible but de-emphasized.
 
-No component-level color hardcoding — everything stays in tokens so we can tweak the palette in one place.
+## 4. Smoother magic-link sign-in
 
-### Alternatives if this isn't to your taste
+**Symptoms:** clicking the OTP link returns to `/login`; sign-in then takes ~60s.
 
-I'll go with the above unless you'd rather I try one of these:
+**Likely causes** (verify via `src/lib/auth-context.tsx`, `src/routes/login.tsx`, `src/routes/_authenticated.tsx`):
+- `emailRedirectTo` lands on a `_authenticated` route whose guard fires before Supabase parses the magic-link hash → bounces to `/login`.
+- Auth context relies on `getSession()` polling instead of `onAuthStateChange`, delaying session pickup ~60s.
 
-- **Editorial cream + ink** — paper background, near-black ink, single muted oxblood accent. Very magazine-like.
-- **Cool graphite + teal** — light grey surfaces, charcoal text, single teal accent. Apple-ish neutrality.
-- **Warm beige + forest** — beige surfaces, deep forest green sidebar, terracotta accent. Most "human", least corporate.
+**Fixes:**
+1. New public route `src/routes/auth/callback.tsx` — calls `supabase.auth.exchangeCodeForSession(window.location.href)` (handles PKCE `?code=` and legacy `#access_token=`), shows "Signing you in…", then navigates to `/dashboard` on success / `/login` on failure.
+2. Set `emailRedirectTo: ${window.location.origin}/auth/callback` in `login.tsx`.
+3. In `auth-context`, register `onAuthStateChange` BEFORE `getSession()` so SIGNED_IN hydrates the role immediately.
+4. Verify `_authenticated` guard waits for `loading === false` before redirecting.
 
-Say "go" to apply Warm Slate + Sage as part of the previously-approved build, or pick one of the alternatives.
+---
+
+### Files touched
+- `supabase/migrations/<ts>_pe_firms_extend.sql`
+- `src/lib/dashboard.functions.ts`, `src/components/dashboard/Dashboard.tsx`
+- `src/lib/pe-firms.functions.ts` (new)
+- `src/routes/_authenticated/pe-firms.tsx` (rewrite)
+- `src/components/pe-firms/PeFirmsTable.tsx`, `AddPeFirmDialog.tsx` (new)
+- `src/lib/csv-schemas.ts`
+- `src/components/candidates/CandidatesTable.tsx` (merge Name/Title/Company, drop details icon)
+- `src/routes/auth/callback.tsx` (new)
+- `src/routes/login.tsx`
+- `src/lib/auth-context.tsx` (listener-first ordering, if needed)

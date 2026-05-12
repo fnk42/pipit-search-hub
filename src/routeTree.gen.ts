@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedWeeklyReportRouteImport } from './routes/_authenticated/weekly-report'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPeFirmsRouteImport } from './routes/_authenticated/pe-firms'
@@ -33,6 +34,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedWeeklyReportRoute =
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/pe-firms': typeof AuthenticatedPeFirmsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/weekly-report': typeof AuthenticatedWeeklyReportRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/candidates/$id': typeof AuthenticatedCandidatesIdRoute
 }
 export interface FileRoutesByTo {
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/pe-firms': typeof AuthenticatedPeFirmsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/weekly-report': typeof AuthenticatedWeeklyReportRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/candidates/$id': typeof AuthenticatedCandidatesIdRoute
 }
 export interface FileRoutesById {
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   '/_authenticated/pe-firms': typeof AuthenticatedPeFirmsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/weekly-report': typeof AuthenticatedWeeklyReportRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/_authenticated/candidates/$id': typeof AuthenticatedCandidatesIdRoute
 }
 export interface FileRouteTypes {
@@ -129,6 +138,7 @@ export interface FileRouteTypes {
     | '/pe-firms'
     | '/settings'
     | '/weekly-report'
+    | '/auth/callback'
     | '/candidates/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -141,6 +151,7 @@ export interface FileRouteTypes {
     | '/pe-firms'
     | '/settings'
     | '/weekly-report'
+    | '/auth/callback'
     | '/candidates/$id'
   id:
     | '__root__'
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pe-firms'
     | '/_authenticated/settings'
     | '/_authenticated/weekly-report'
+    | '/auth/callback'
     | '/_authenticated/candidates/$id'
   fileRoutesById: FileRoutesById
 }
@@ -161,6 +173,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -184,6 +197,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/weekly-report': {
@@ -287,6 +307,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
