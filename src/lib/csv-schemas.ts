@@ -223,20 +223,22 @@ export const candidateRowSchema = z.object({
 });
 export type CandidateRow = z.infer<typeof candidateRowSchema>;
 
+const optNum = z.preprocess((v) => {
+  if (v === "" || v == null) return undefined;
+  const n = typeof v === "number" ? v : Number(String(v).replace(/[$,_\s]/g, ""));
+  return Number.isFinite(n) ? n : undefined;
+}, z.number().nonnegative().optional());
+
 export const peFirmRowSchema = z.object({
   name: z.string().trim().min(1, "Name required").max(200),
-  tier: z.preprocess((v) => (typeof v === "string" && v.trim() ? v.trim() : undefined), z.enum(PE_TIERS).optional()),
   status: z.preprocess((v) => (v ? String(v).trim() : "Target"), z.enum(PE_STATUSES)),
-  aum_usd: z.preprocess(
-    (v) => {
-      if (v === "" || v == null) return undefined;
-      const n = typeof v === "number" ? v : Number(String(v).replace(/[$,_\s]/g, ""));
-      return Number.isFinite(n) ? Math.round(n) : v;
-    },
-    z.number().int().nonnegative().optional(),
-  ),
-  hq_city: optStr,
-  hq_state: optStr,
+  aum_b: optNum,
+  hq: optStr,
+  location: optStr,
+  layer: optStr,
+  next_layer_tag: optStr,
+  aum_source: optStr,
+  website: optStr,
   notes: optStr,
 });
 export type PeFirmRow = z.infer<typeof peFirmRowSchema>;
@@ -264,12 +266,15 @@ export const CANDIDATE_HEADER_ALIASES: Record<string, string[]> = {
 };
 
 export const PE_HEADER_ALIASES: Record<string, string[]> = {
-  name: ["name","firm","firm name","fund","fund name"],
-  tier: ["tier"],
+  name: ["name","firm","firm name","fund","fund name","company","company name"],
   status: ["status"],
-  aum_usd: ["aum","aum usd","assets","assets under management"],
-  hq_city: ["city","hq city","headquarters city"],
-  hq_state: ["state","hq state","headquarters state"],
+  aum_b: ["aum b","aum (b)","aum billions","aum $b","aum bn","aum b usd"],
+  hq: ["hq","headquarters","head office"],
+  location: ["location","city","region","office"],
+  layer: ["layer"],
+  next_layer_tag: ["next layer tag","next layer","next tag"],
+  aum_source: ["source of aum figure","aum source","source of aum","aum reference","aum citation"],
+  website: ["website","url","web","site","homepage"],
   notes: ["notes","comments","remarks"],
 };
 
@@ -296,10 +301,13 @@ export const CANDIDATE_FIELDS = [
 
 export const PE_FIELDS = [
   { key: "name", label: "Firm name", required: true },
-  { key: "tier", label: "Tier" },
   { key: "status", label: "Status" },
-  { key: "aum_usd", label: "AUM (USD)" },
-  { key: "hq_city", label: "HQ city" },
-  { key: "hq_state", label: "HQ state" },
+  { key: "aum_b", label: "AUM ($B)" },
+  { key: "hq", label: "HQ" },
+  { key: "location", label: "Location" },
+  { key: "layer", label: "Layer" },
+  { key: "next_layer_tag", label: "Next Layer Tag" },
+  { key: "aum_source", label: "Source of AUM Figure" },
+  { key: "website", label: "Website" },
   { key: "notes", label: "Notes" },
 ] as const;
