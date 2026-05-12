@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import {
   PIPELINE_STAGES, LOCATION_BUCKETS, IR_FUNCTIONS, REJECTED_STAGES,
-  OWNERS, SOURCED_BY_OPTIONS, SCREEN_OUT_REASONS,
+  OWNERS, SOURCED_BY_OPTIONS, SCREEN_OUT_REASONS, CANDIDATE_FITS,
 } from "@/lib/csv-schemas";
 import { X } from "lucide-react";
 
@@ -33,7 +33,7 @@ const schema = z.object({
   notes: z.string().max(10000).optional(),
   date_sourced: z.string().optional(),
   client_visible: z.boolean(),
-  shortlisted: z.boolean().optional(),
+  fit: z.enum(CANDIDATE_FITS).default("Unassessed"),
 });
 
 export type CandidateFormValues = z.infer<typeof schema>;
@@ -59,7 +59,7 @@ export function CandidateForm({
       sourced_by: "GPR Team",
       ir_functions: [],
       client_visible: false,
-      shortlisted: false,
+      fit: "Unassessed",
       ...defaultValues,
     },
   });
@@ -195,18 +195,20 @@ export function CandidateForm({
       )}
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between rounded-md border border-border bg-card p-3">
-          <div>
-            <Label className="text-sm">Shortlisted</Label>
-            <p className="text-xs text-muted-foreground">Adds to the client-facing shortlist and makes visible automatically.</p>
+        <div className="flex items-center justify-between rounded-md border border-border bg-card p-3 gap-3">
+          <div className="min-w-0">
+            <Label className="text-sm">Fit</Label>
+            <p className="text-xs text-muted-foreground">"Target Fit" adds the candidate to the shortlist (auto-visible to client).</p>
           </div>
-          <Switch
-            checked={form.watch("shortlisted") ?? false}
-            onCheckedChange={(v) => {
-              form.setValue("shortlisted", v, { shouldDirty: true });
-              if (v) form.setValue("client_visible", true, { shouldDirty: true });
-            }}
-          />
+          <Select
+            value={form.watch("fit") ?? "Unassessed"}
+            onValueChange={(v) => form.setValue("fit", v as never, { shouldDirty: true })}
+          >
+            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {CANDIDATE_FITS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex items-center justify-between rounded-md border border-border bg-card p-3">
           <div>
