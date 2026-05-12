@@ -1,93 +1,57 @@
-## Goal
+## Decisions captured
 
-Add a **Fit** field as the new shortlist criterion, fix table layout (no horizontal scroll pain, no name wrap), add safe delete with a clean confirm dialog, and clean up duplicate rows from the double-import.
-
----
-
-## Diagnosis: 572 vs 316
-
-- DB currently has **572 candidates** (one import day: 2026-05-11).
-- The CSV had **316 rows**.
-- Importer matched on exact (lowercased) name+email, but ~half the CSV rows have no email → second run inserted them again instead of updating. Result: ~256 dupes.
-- The "340" you saw is the **Shortlist count** (341 shortlisted), not the master count.
-
-**Fix:** one-shot dedup migration (keep oldest row per `lower(trim(name))`, merge non-null fields from the duplicates, then drop the rest). After dedup we expect ~316 master rows.
+1. **Non-Target-Fit candidates** stay at stage `Sourced` (no new stage). Pipeline metric uses `fit`, not stage, to filter them out.
+2. **Pipeline metric** → show **two metrics** on the dashboard: Master (all non-placed) and Active pipeline (current definition).
+3. **Rejected + Target Fit** → auto-downgrade `fit` to `Unassessed` when stage moves to any `Rejected by …` stage. Cleans the shortlist count.
+4. **Days Active** → set search-start to **April 1, 2026**, and make it editable in Settings.
+5. **Table layout** → drop the separate Title/Firm column; stack `title · firm` under the name on a second line. Fixes the sticky-column overlap.
 
 ---
 
-## Schema changes (one migration)
+## Changes
 
-1. `CREATE TYPE candidate_fit AS ENUM ('Target Fit','Too Junior','Too Senior','Off-function','Unassessed')`
-2. `ALTER TABLE candidates ADD COLUMN fit candidate_fit NOT NULL DEFAULT 'Unassessed'`
-3. **Backfill:** `UPDATE candidates SET fit='Target Fit' WHERE shortlisted = true` (covers all 341)
-4. **Trigger** `sync_fit_to_shortlisted` (BEFORE INSERT/UPDATE OF fit): `NEW.shortlisted := (NEW.fit = 'Target Fit')`. The existing `sync_shortlist_visibility` trigger then auto-flips `client_visible`.
-5. **Dedup pass** (separate statement in same migration): for each `lower(trim(name))` group >1, keep the row with earliest `created_at`, coalesce non-null fields from siblings into it, delete the rest.
+### A. Table layout — fix overlap (`src/components/candidates/CandidatesTable.tsx`)
 
----
+- Remove the `Title / Firm` header and cell.
+- Inside the Name cell, render two stacked lines:
+  - **Line 1:** Name (single line, never wraps) + star + LinkedIn icon.
+  - **Line 2:** `{title} · {firm}` in `text-xs text-muted-foreground`, truncated, with `title=` tooltip. Recruiters get the same `EditableText` controls inline.
+- Widen Name column from `w-[180px]` → `w-[260px]`.
+- Add a subtle right-edge shadow to the sticky Name cell so the boundary between pinned and scrolling content is obvious.
+- Mobile cards already do this — no change there.
 
-## Importer hardening (`src/lib/csv-schemas.ts` + `import.functions.ts`)
+### B. Fit ↔ Stage sync (DB trigger, migration)
 
-- Add `fit` column with aliases (`Fit`, `Role Fit`); blank → `Unassessed`; fuzzy parse ("target"→Target Fit, "junior"→Too Junior, "senior"→Too Senior, "off"→Off-function).
-- **Match key:** `lower(trim(name)) + lower(trim(coalesce(current_firm,'')))` instead of name+email — prevents email-less rows from re-inserting.
+- Update `sync_fit_to_shortlisted` (or add a sibling trigger) so that **on UPDATE**, when `pipeline_stage` moves into any of the `Rejected by …` stages, `fit` is set to `'Unassessed'`. `shortlisted` already syncs from `fit`, so this also drops them off the shortlist.
+- One-shot data fix in the same migration: for the ~68 rows where `fit = 'Target Fit'` AND `pipeline_stage` starts with `'Rejected by'`, set `fit = 'Unassessed'`.
 
----
+### C. Dashboard — two metrics (`src/lib/dashboard.functions.ts`, `src/components/dashboard/Dashboard.tsx`)
 
-## UI changes
+- Compute and return **both**:
+  - `masterTotal` = total candidates minus `Placed`.
+  - `activePipeline` = current definition (everyone except `Placed` + 4 rejected stages).
+- Render them as two adjacent metric cards labeled **"Master list"** and **"Active pipeline"**.
 
-### Table layout (`CandidatesTable.tsx`)
-- **Name column:** fixed `w-[180px]`, `truncate`, `whitespace-nowrap` — never wraps.
-- **Title/Firm sub-line:** `truncate` with `title=` tooltip — cut off cleanly.
-- **Sticky first column:** Name column gets `sticky left-0 bg-card z-10` so it stays visible while horizontally scrolling. Checkbox + star columns sticky too.
-- **Sticky horizontal scrollbar:** wrap the table in a container with `overflow-x-auto` plus a top scrollbar (`dir="rtl"` shadow trick OR a small `<TopScroller>` component that mirrors the bottom scrollbar at the top of the table). User can scroll horizontally without going to bottom of page.
-- **Compact columns:** reduce default cell padding (`px-2 py-1.5`), shrink "Sourced by" / "Owner" to `w-[110px]`, "Location" to `w-[120px]`, "Sourced" date `w-[96px]`.
-- New **Fit** column (editable select, color-coded chip), placed right after Stage.
-- New **trash icon** column on the right (recruiters only).
+### D. Days Active — editable search-start date
 
-### Filters (`CandidateFilters.tsx`)
-- Drop the `Seniority` chip (regex-based, brittle).
-- Add **Fit** dropdown: All / Target Fit / Too Junior / Too Senior / Off-function / Unassessed.
-
-### Tabs (`candidates.tsx`)
-- Shortlist tab: count + filter by `fit === 'Target Fit'` (replaces `shortlisted` boolean read; trigger keeps them in sync, so existing client RLS still works).
-- Bulk action bar: replace "Add/Remove shortlist" with **"Set fit →"** menu.
-
-### Delete UX
-- Trash icon in the row → opens **AlertDialog**: "Delete {name}? This can't be undone." with Cancel / Delete (destructive variant).
-- On error, `toast.error` with the friendly message (no raw Postgres errors): map known errors → "Couldn't delete — please refresh and try again."
-- `deleteCandidate` server fn already exists; just wire it.
-
-### Add/Edit form (`CandidateForm.tsx`)
-- Add Fit select, default Unassessed.
-
----
-
-## Server (`candidates.functions.ts`)
-
-- Add `fit` to `candidateInput` zod and to `filtersSchema`.
-- Replace `seniority` regex filter block with `if (data.fit) q = q.eq("fit", data.fit)`.
-- Keep `setShortlist`/`updateCandidate` as-is — trigger handles sync.
-
----
-
-## Build checklist (I'll tick these off as I go)
-
-- [ ] Migration: enum + column + backfill + trigger + dedup
-- [ ] Verify post-migration counts (expect ~316 master, ~341 → Target Fit may shrink slightly after dedup)
-- [ ] `csv-schemas.ts`: add Fit + aliases, tighten match key
-- [ ] `candidates.functions.ts`: fit in zod + filter
-- [ ] `CandidateFilters.tsx`: drop seniority, add Fit
-- [ ] `CandidatesTable.tsx`: sticky Name col, no-wrap, truncated subtitle, compact widths, Fit col, trash col
-- [ ] Top horizontal scrollbar (mirrored)
-- [ ] Delete AlertDialog + friendly error mapping
-- [ ] Bulk "Set fit" menu (replaces shortlist bulk)
-- [ ] `candidates.tsx`: Shortlist tab reads `fit === 'Target Fit'`
-- [ ] `CandidateForm.tsx` + `AddCandidateDialog`: Fit select
-- [ ] Smoke test: filter by Fit, set fit on a row → shortlist tab updates → client_visible flips
-- [ ] Update memory roadmap (delete UI shipped, dedup shipped)
+- New row in a small `app_settings` table (single-row pattern) with a `search_start_date` column, default `'2026-04-01'`. RLS: recruiters read/write, clients read.
+- `dashboard.functions.ts` reads `search_start_date` instead of computing from earliest `created_at`. Days Active = `today - search_start_date`.
+- Settings page (`src/routes/_authenticated/settings.tsx`) gets a date picker (shadcn `<Calendar>` in a popover) bound to `search_start_date`, with Save button.
+- Backfill the row with `2026-04-01` in the migration.
 
 ---
 
 ## Out of scope
 
-- No seniority enum / title parsing.
-- No PE firms or dashboard changes.
+- Target Fit candidates currently in a Rejected stage (~68) **will be auto-downgraded** by the migration's one-shot fix — confirming this is what you want when you approve.
+- No new "Not Pursued" stage. Too Senior / Too Junior / Off-function stay at `Sourced` and are filtered out of Active pipeline by `fit`.
+
+---
+
+## Files touched
+
+- `src/components/candidates/CandidatesTable.tsx`
+- `src/lib/dashboard.functions.ts`
+- `src/components/dashboard/Dashboard.tsx`
+- `src/routes/_authenticated/settings.tsx`
+- New migration: trigger update + one-shot fit cleanup + `app_settings` table seeded with `2026-04-01`
