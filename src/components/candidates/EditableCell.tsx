@@ -95,7 +95,7 @@ export function EditableSelect({
         open
         onOpenChange={(o) => { if (!o) setEditing(false); }}
       >
-        <SelectTrigger className="h-7 text-sm py-0"><SelectValue /></SelectTrigger>
+        <SelectTrigger className="h-7 text-sm py-0 border-[#1570EF] shadow-[0_0_0_4px_#E0EAFF]"><SelectValue /></SelectTrigger>
         <SelectContent>
           {allowEmpty && <SelectItem value={NONE}>—</SelectItem>}
           {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}

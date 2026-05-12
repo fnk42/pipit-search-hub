@@ -25,6 +25,8 @@ export const defaultFilters: Filters = {
 
 const ANY = "__any__";
 
+const TRIGGER = "h-10 min-w-[160px] rounded-lg border-[#D0D5DD] bg-white text-sm text-[#101828] focus:border-[#1570EF] focus:ring-4 focus:ring-[#E0EAFF]";
+
 export function CandidateFilters({
   value, onChange, role,
 }: { value: Filters; onChange: (v: Filters) => void; role: "recruiter" | "client" }) {
@@ -32,12 +34,12 @@ export function CandidateFilters({
     || value.screenOutReason || value.fit || value.clientVisible !== "all";
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-3 shadow-[var(--shadow-soft)]">
-      <div className="relative flex-1 min-w-[180px]">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="relative flex-1 min-w-[240px]">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-[#667085]" />
         <Input
           placeholder="Search name, firm, email…"
-          className="pl-8 h-9"
+          className="pl-10 h-10 rounded-lg border-[#D0D5DD] bg-white text-sm text-[#101828] placeholder:text-[#667085] focus-visible:border-[#1570EF] focus-visible:ring-4 focus-visible:ring-[#E0EAFF]"
           value={value.search}
           onChange={(e) => onChange({ ...value, search: e.target.value })}
         />
@@ -50,7 +52,7 @@ export function CandidateFilters({
         <>
           <FilterSelect placeholder="Screen out reason" value={value.screenOutReason} options={SCREEN_OUT_REASONS} onChange={(v) => onChange({ ...value, screenOutReason: v })} />
           <Select value={value.clientVisible} onValueChange={(v) => onChange({ ...value, clientVisible: v as Filters["clientVisible"] })}>
-            <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className={TRIGGER}><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All visibility</SelectItem>
               <SelectItem value="yes">Client visible</SelectItem>
@@ -60,8 +62,8 @@ export function CandidateFilters({
         </>
       )}
       {has && (
-        <Button variant="ghost" size="sm" onClick={() => onChange(defaultFilters)}>
-          <X className="h-3.5 w-3.5 mr-1" /> Clear
+        <Button variant="ghost" size="sm" onClick={() => onChange(defaultFilters)} className="h-10">
+          <X className="h-4 w-4 mr-1" /> Clear
         </Button>
       )}
     </div>
@@ -71,7 +73,7 @@ export function CandidateFilters({
 function FilterSelect({ placeholder, value, options, onChange }: { placeholder: string; value: string; options: readonly string[]; onChange: (v: string) => void }) {
   return (
     <Select value={value || ANY} onValueChange={(v) => onChange(v === ANY ? "" : v)}>
-      <SelectTrigger className="h-9 w-[160px]"><SelectValue placeholder={placeholder} /></SelectTrigger>
+      <SelectTrigger className={TRIGGER}><SelectValue placeholder={placeholder} /></SelectTrigger>
       <SelectContent>
         <SelectItem value={ANY}>All {placeholder.toLowerCase()}</SelectItem>
         {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
