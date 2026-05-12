@@ -14,9 +14,16 @@ const filtersSchema = z.object({
   owner: z.enum(OWNERS).optional(),
   sourcedBy: z.enum(SOURCED_BY_OPTIONS).optional(),
   screenOutReason: z.string().optional(),
+  seniority: z.enum(["vp", "seniorAssociate", "tooSenior"]).optional(),
   clientVisible: z.enum(["yes", "no", "all"]).default("all"),
   shortlisted: z.enum(["yes", "no", "all"]).default("all"),
 }).default({ clientVisible: "all", shortlisted: "all" });
+
+const TOO_SENIOR_RE = /\b(managing director|md|principal|head of|partner|chief|cio|cfo|coo|ceo|president)\b/i;
+const VICE_PRES_RE = /\bvice president\b/i;
+const VP_RE = /\b(vp|svp|evp)\b/i;
+const SR_ASSOC_RE = /\b(senior associate|sr\.? associate)\b/i;
+const TOO_SENIOR_NON_VP_RE = /(managing director|\bmd\b|principal|head of|partner|chief|\bcio\b|\bcfo\b|\bcoo\b|\bceo\b|president)/i;
 
 export const listCandidates = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
