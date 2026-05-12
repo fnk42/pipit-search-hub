@@ -10,10 +10,10 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { StageBadge } from "./StageBadge";
-import { EditableText, EditableSelect, EditableDate } from "./EditableCell";
+import { EditableText, EditableSelect } from "./EditableCell";
 import { updateCandidate, deleteCandidate } from "@/lib/candidates.functions";
 import {
-  PIPELINE_STAGES, LOCATION_BUCKETS, OWNERS, SOURCED_BY_OPTIONS,
+  PIPELINE_STAGES, LOCATION_BUCKETS,
   SCREEN_OUT_REASONS, REJECTED_STAGES, CANDIDATE_FITS, type CandidateFit,
 } from "@/lib/csv-schemas";
 import { toast } from "sonner";
@@ -29,10 +29,7 @@ type Candidate = {
   shortlisted: boolean;
   fit: CandidateFit;
   linkedin_url?: string | null;
-  owner?: string | null;
-  sourced_by?: string | null;
   screen_out_reason?: string | null;
-  date_sourced?: string | null;
 };
 
 const REJ = new Set<string>(REJECTED_STAGES);
@@ -44,6 +41,8 @@ const FIT_CLASS: Record<CandidateFit, string> = {
   "Off-function": "bg-muted text-muted-foreground border-border",
   "Unassessed": "bg-background text-muted-foreground border-dashed border-border",
 };
+
+const TINY: React.CSSProperties = { fontSize: "8px", lineHeight: "12px" };
 
 export function CandidatesTable({
   rows, role, selected, onToggleRow, onToggleAll,
@@ -134,10 +133,10 @@ export function CandidatesTable({
         ))}
       </div>
 
-      {/* Desktop table — sticky name col, compact, top scrollbar */}
+      {/* Desktop table — sticky name col, spreadsheet-style auto width */}
       <div className="hidden sm:block rounded-lg border border-border bg-card shadow-[var(--shadow-card)]">
         <ScrollSyncContainer>
-          <Table className="text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1.5">
+          <Table className="text-sm w-auto min-w-full [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1.5">
             <TableHeader>
               <TableRow>
                 {isRecruiter && (
@@ -145,16 +144,15 @@ export function CandidatesTable({
                     <Checkbox checked={allSelected} onCheckedChange={() => onToggleAll?.()} aria-label="Select all" />
                   </TableHead>
                 )}
-                <TableHead className={`w-[280px] ${isRecruiter ? "sticky left-10 bg-card z-20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]" : "sticky left-0 bg-card z-20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]"}`}>Name · Title / Firm</TableHead>
-                <TableHead className="w-[170px]">Stage</TableHead>
-                <TableHead className="w-[120px]">Fit</TableHead>
-                <TableHead className="w-[110px]">Location</TableHead>
-                {isRecruiter && <TableHead className="w-[100px]">Owner</TableHead>}
-                {isRecruiter && <TableHead className="w-[110px]">Sourced by</TableHead>}
-                {isRecruiter && <TableHead className="w-[160px]">Screen out reason</TableHead>}
-                <TableHead className="w-[96px]">Sourced</TableHead>
-                {isRecruiter && <TableHead className="w-[60px] text-right">Visible</TableHead>}
-                {isRecruiter && <TableHead className="w-[44px]"></TableHead>}
+                <TableHead className={`whitespace-nowrap ${isRecruiter ? "sticky left-10 bg-card z-20 border-r border-border" : "sticky left-0 bg-card z-20 border-r border-border"}`}>Name</TableHead>
+                <TableHead className="whitespace-nowrap" style={TINY}>Title</TableHead>
+                <TableHead className="whitespace-nowrap" style={TINY}>Company</TableHead>
+                <TableHead className="whitespace-nowrap">Stage</TableHead>
+                <TableHead className="whitespace-nowrap">Fit</TableHead>
+                <TableHead className="whitespace-nowrap">Location</TableHead>
+                {isRecruiter && <TableHead className="whitespace-nowrap">Screen out reason</TableHead>}
+                {isRecruiter && <TableHead className="whitespace-nowrap text-right">Visible</TableHead>}
+                {isRecruiter && <TableHead className="w-8"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -171,40 +169,34 @@ export function CandidatesTable({
                         />
                       </TableCell>
                     )}
-                    <TableCell className={`font-medium align-middle w-[280px] max-w-[280px] ${isRecruiter ? "sticky left-10 bg-card z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]" : "sticky left-0 bg-card z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]"}`}>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 whitespace-nowrap overflow-hidden">
-                          {c.fit === "Target Fit" && <Star className="h-3 w-3 fill-[var(--metric-amber)] text-[var(--metric-amber)] shrink-0" />}
-                          {c.linkedin_url ? (
-                            <a href={c.linkedin_url} target="_blank" rel="noreferrer"
-                               className="hover:text-accent inline-flex items-center gap-1 truncate" title={c.name}>
-                              <span className="truncate">{c.name}</span>
-                              <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
-                            </a>
-                          ) : (
-                            <Link to="/candidates/$id" params={{ id: c.id }}
-                                  className="hover:text-accent truncate" title={c.name}>
-                              {c.name}
-                            </Link>
-                          )}
-                        </div>
-                        <div
-                          className="text-xs text-muted-foreground truncate"
-                          title={`${c.current_title ?? ""}${c.current_firm ? ` · ${c.current_firm}` : ""}`}
-                        >
-                          {isRecruiter ? (
-                            <span className="inline-flex items-center gap-1 max-w-full">
-                              <EditableText value={c.current_title} onSave={(v) => patch(c.id, { current_title: v })} placeholder="title" className="text-xs truncate" />
-                              <span>·</span>
-                              <EditableText value={c.current_firm} onSave={(v) => patch(c.id, { current_firm: v })} placeholder="firm" className="text-xs truncate" />
-                            </span>
-                          ) : (
-                            <>{(c.current_title ?? "—")}{c.current_firm ? ` · ${c.current_firm}` : ""}</>
-                          )}
-                        </div>
+                    <TableCell className={`font-medium align-middle whitespace-nowrap py-1 pr-3 ${isRecruiter ? "sticky left-10 bg-card z-10 border-r border-border" : "sticky left-0 bg-card z-10 border-r border-border"}`}>
+                      <div className="flex items-center gap-1.5">
+                        {c.fit === "Target Fit" && <Star className="h-3 w-3 fill-[var(--metric-amber)] text-[var(--metric-amber)] shrink-0" />}
+                        {c.linkedin_url ? (
+                          <a href={c.linkedin_url} target="_blank" rel="noreferrer"
+                             className="hover:text-accent inline-flex items-center gap-1" title={c.name}>
+                            <span>{c.name}</span>
+                            <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
+                          </a>
+                        ) : (
+                          <Link to="/candidates/$id" params={{ id: c.id }}
+                                className="hover:text-accent" title={c.name}>
+                            {c.name}
+                          </Link>
+                        )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-muted-foreground whitespace-nowrap" style={TINY}>
+                      {isRecruiter ? (
+                        <EditableText value={c.current_title} onSave={(v) => patch(c.id, { current_title: v })} placeholder="—" className="text-[8px] leading-3" />
+                      ) : (c.current_title ?? "—")}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground whitespace-nowrap" style={TINY}>
+                      {isRecruiter ? (
+                        <EditableText value={c.current_firm} onSave={(v) => patch(c.id, { current_firm: v })} placeholder="—" className="text-[8px] leading-3" />
+                      ) : (c.current_firm ?? "—")}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
                       {isRecruiter ? (
                         <EditableSelect
                           value={c.pipeline_stage}
@@ -214,7 +206,7 @@ export function CandidatesTable({
                         />
                       ) : <StageBadge stage={c.pipeline_stage} />}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       {isRecruiter ? (
                         <EditableSelect
                           value={c.fit}
@@ -224,7 +216,7 @@ export function CandidatesTable({
                         />
                       ) : <FitChip value={c.fit} />}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                       {isRecruiter ? (
                         <EditableSelect
                           value={c.location_bucket} options={LOCATION_BUCKETS} allowEmpty
@@ -233,17 +225,7 @@ export function CandidatesTable({
                       ) : (c.location_bucket ?? "—")}
                     </TableCell>
                     {isRecruiter && (
-                      <TableCell className="text-xs text-muted-foreground">
-                        <EditableSelect value={c.owner} options={OWNERS} allowEmpty onSave={(v) => patch(c.id, { owner: v })} />
-                      </TableCell>
-                    )}
-                    {isRecruiter && (
-                      <TableCell className="text-xs text-muted-foreground">
-                        <EditableSelect value={c.sourced_by ?? "GPR Team"} options={SOURCED_BY_OPTIONS} onSave={(v) => patch(c.id, { sourced_by: v ?? "GPR Team" })} />
-                      </TableCell>
-                    )}
-                    {isRecruiter && (
-                      <TableCell className="text-xs text-muted-foreground">
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         <EditableSelect
                           value={c.screen_out_reason} options={SCREEN_OUT_REASONS} allowEmpty
                           disabled={!isRej}
@@ -252,11 +234,6 @@ export function CandidatesTable({
                         />
                       </TableCell>
                     )}
-                    <TableCell className="text-xs text-muted-foreground tabular-nums">
-                      {isRecruiter ? (
-                        <EditableDate value={c.date_sourced} onSave={(v) => patch(c.id, { date_sourced: v })} />
-                      ) : (c.date_sourced ?? "—")}
-                    </TableCell>
                     {isRecruiter && (
                       <TableCell className="text-right">
                         <button

@@ -1,57 +1,63 @@
-## Decisions captured
+# Implementation plan
 
-1. **Non-Target-Fit candidates** stay at stage `Sourced` (no new stage). Pipeline metric uses `fit`, not stage, to filter them out.
-2. **Pipeline metric** → show **two metrics** on the dashboard: Master (all non-placed) and Active pipeline (current definition).
-3. **Rejected + Target Fit** → auto-downgrade `fit` to `Unassessed` when stage moves to any `Rejected by …` stage. Cleans the shortlist count.
-4. **Days Active** → set search-start to **April 1, 2026**, and make it editable in Settings.
-5. **Table layout** → drop the separate Title/Firm column; stack `title · firm` under the name on a second line. Fixes the sticky-column overlap.
+## 1. Typography (CandidatesTable.tsx)
+- Title (now in Name cell sub-line) and Company (new column) render at exactly `fontSize: '8px'`, `lineHeight: '12px'`.
 
----
+## 2. Spreadsheet-style auto-sizing (CandidatesTable.tsx)
+- Drop fixed `w-[..px]` widths on `<TableHead>` / `<TableCell>` (except sticky checkbox).
+- Add `whitespace-nowrap` to header cells and to short-content data cells (Stage, Fit, Location, Screen-out reason, Visible, Delete).
+- Set table `w-auto min-w-full` so columns shrink to content; existing top/bottom synced scrollbar stays as a safety net for long firm names.
 
-## Changes
+## 3. Name column cleanup (CandidatesTable.tsx)
+- Remove the inner `min-w-0` + redundant `overflow-hidden` wrappers that cause the visible gap/overlay.
+- Replace the sticky `shadow-[2px_0_4px_-2px_...]` with a crisp `border-r border-border`.
+- Tighten cell padding to `py-1 pr-3` on the Name cell.
 
-### A. Table layout — fix overlap (`src/components/candidates/CandidatesTable.tsx`)
+## 4. Inline-editable everywhere (CandidatesTable.tsx)
+After steps 5 + 9 the live recruiter cells are: **Name, Title, Company, Stage, Fit, Location, Screen-out reason**. Each renders an `EditableText` / `EditableSelect` (Fit already does). Confirm + apply the wrapper cleanup from step 3 — no new component needed.
 
-- Remove the `Title / Firm` header and cell.
-- Inside the Name cell, render two stacked lines:
-  - **Line 1:** Name (single line, never wraps) + star + LinkedIn icon.
-  - **Line 2:** `{title} · {firm}` in `text-xs text-muted-foreground`, truncated, with `title=` tooltip. Recruiters get the same `EditableText` controls inline.
-- Widen Name column from `w-[180px]` → `w-[260px]`.
-- Add a subtle right-edge shadow to the sticky Name cell so the boundary between pinned and scrolling content is obvious.
-- Mobile cards already do this — no change there.
+## 5. Remove Owner / Sourced by / Sourced date columns
+Touched: `CandidatesTable.tsx`, `CandidateFilters.tsx`, `routes/_authenticated/candidates.tsx`.
+- Delete the three `<TableHead>` and `<TableCell>` blocks.
+- Drop unused `OWNERS` / `SOURCED_BY_OPTIONS` imports from the table.
+- Remove `owner`, `sourcedBy` from filter UI, `defaultFilters`, `validateSearch`, and the `listCandidates` call site.
+- DB columns stay (no migration), data preserved.
 
-### B. Fit ↔ Stage sync (DB trigger, migration)
+## 6. Reconcile Metrics totals (dashboard.functions.ts, Dashboard.tsx)
+Redefine seniority so **VP + Senior Associate + Other = Master list total**.
+- Server: classify each master-list candidate (everyone except `pipeline_stage = 'Placed'`) into exactly one bucket using `current_title`:
+  1. `vp` → `/\b(vp|svp|evp|vice president)\b/i`
+  2. `seniorAssociate` → `/\b(senior associate|sr\.? associate)\b/i`
+  3. `other` → everything else (too-senior, junior, unmapped, missing title)
+- Return `{ vp, seniorAssociate, other, total: masterTotal }`.
+- UI: render four tiles — Total, VP, Senior Associate, Other. Total mirrors `masterTotal` so they always reconcile.
 
-- Update `sync_fit_to_shortlisted` (or add a sibling trigger) so that **on UPDATE**, when `pipeline_stage` moves into any of the `Rejected by …` stages, `fit` is set to `'Unassessed'`. `shortlisted` already syncs from `fit`, so this also drops them off the shortlist.
-- One-shot data fix in the same migration: for the ~68 rows where `fit = 'Target Fit'` AND `pipeline_stage` starts with `'Rejected by'`, set `fit = 'Unassessed'`.
+## 7. Working seniority filter end-to-end
+- Add `seniority?: 'vp' | 'seniorAssociate' | 'other'` to `validateSearch` in `routes/_authenticated/candidates.tsx`.
+- Apply a client-side filter in `CandidatesPage` on `current_title` using the same regex precedence as the server (Postgres regex on free text is awkward; client-side filter on the master list is correct here).
+- When `search.seniority` is set, show a dismissible chip: `Filtered: VP × Clear` that clears the param.
+- `SeniorityRow` tile clicks navigate with the matching `seniority` value; the **Total** tile navigates to `/candidates` with no params (clears all filters).
 
-### C. Dashboard — two metrics (`src/lib/dashboard.functions.ts`, `src/components/dashboard/Dashboard.tsx`)
+## 8. Geography / state breakdown chart colors (Dashboard.tsx)
+Replace the single `fill="var(--metric-sky)"` on the `BarChart` with per-bar `<Cell>` elements using:
+```
+['#1e3a5f', '#d4a017', '#5b8c5a', '#c0392b', '#7d3c98']
+```
+Mapped 1:1 to Florida, Texas, Tri-State, Other US, International. Click-to-filter unchanged.
 
-- Compute and return **both**:
-  - `masterTotal` = total candidates minus `Placed`.
-  - `activePipeline` = current definition (everyone except `Placed` + 4 rejected stages).
-- Render them as two adjacent metric cards labeled **"Master list"** and **"Active pipeline"**.
-
-### D. Days Active — editable search-start date
-
-- New row in a small `app_settings` table (single-row pattern) with a `search_start_date` column, default `'2026-04-01'`. RLS: recruiters read/write, clients read.
-- `dashboard.functions.ts` reads `search_start_date` instead of computing from earliest `created_at`. Days Active = `today - search_start_date`.
-- Settings page (`src/routes/_authenticated/settings.tsx`) gets a date picker (shadcn `<Calendar>` in a popover) bound to `search_start_date`, with Save button.
-- Backfill the row with `2026-04-01` in the migration.
-
----
-
-## Out of scope
-
-- Target Fit candidates currently in a Rejected stage (~68) **will be auto-downgraded** by the migration's one-shot fix — confirming this is what you want when you approve.
-- No new "Not Pursued" stage. Too Senior / Too Junior / Off-function stay at `Sourced` and are filtered out of Active pipeline by `fit`.
+## 9. New Company column (CandidatesTable.tsx) — *added per latest request*
+- Strip `· {firm}` from the Name cell's second line; that line keeps **only the title**, still at 8px.
+- Insert a new **Company** column immediately after Name with `EditableText` bound to `current_firm`, also rendered at 8px to match Title (visually paired).
+- Mobile cards: keep showing `title · firm` underneath the name (single compact line), so mobile layout is unchanged.
+- Filtering, search (`name,current_firm,email`), and the `current_firm` field on the server are unchanged.
 
 ---
 
 ## Files touched
+- `src/components/candidates/CandidatesTable.tsx` (1, 2, 3, 4, 5, 9)
+- `src/components/candidates/CandidateFilters.tsx` (5)
+- `src/routes/_authenticated/candidates.tsx` (5, 7)
+- `src/lib/dashboard.functions.ts` (6)
+- `src/components/dashboard/Dashboard.tsx` (6, 7, 8)
 
-- `src/components/candidates/CandidatesTable.tsx`
-- `src/lib/dashboard.functions.ts`
-- `src/components/dashboard/Dashboard.tsx`
-- `src/routes/_authenticated/settings.tsx`
-- New migration: trigger update + one-shot fit cleanup + `app_settings` table seeded with `2026-04-01`
+No DB migration. No server-function signature changes beyond the dashboard return shape.

@@ -78,19 +78,24 @@ export function Dashboard() {
 function SeniorityRow({ data, loading }: { data?: DashboardData; loading: boolean }) {
   const navigate = useNavigate();
   const s = data?.seniority;
-  const tiles: { label: string; value: number | undefined; tone: MetricTone; seniority: "vp" | "seniorAssociate" | "tooSenior"; sub: string }[] = [
-    { label: "Too senior (MD / Principal / Head of)", value: s?.tooSenior, tone: "clay", seniority: "tooSenior", sub: "Captured but out of scope" },
-    { label: "VP / SVP / EVP sourced", value: s?.vp, tone: "indigo", seniority: "vp", sub: "In scope — vice president level" },
-    { label: "Senior Associates sourced", value: s?.seniorAssociate, tone: "sage", seniority: "seniorAssociate", sub: "In scope — associate level" },
+  type Tile = { label: string; value: number | undefined; tone: MetricTone; seniority?: "vp" | "seniorAssociate" | "other"; sub: string };
+  const tiles: Tile[] = [
+    { label: "Master list total", value: s?.total, tone: "mauve", sub: "All candidates except Placed" },
+    { label: "VP / SVP / EVP", value: s?.vp, tone: "indigo", seniority: "vp", sub: "Vice president level" },
+    { label: "Senior Associates", value: s?.seniorAssociate, tone: "sage", seniority: "seniorAssociate", sub: "Associate level" },
+    { label: "Other", value: s?.other, tone: "clay", seniority: "other", sub: "Too senior, junior, or unmapped" },
   ];
   return (
     <div>
       <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground mb-2">Sourced seniority</p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {tiles.map((t) => (
           <button
             key={t.label}
-            onClick={() => navigate({ to: "/candidates", search: { seniority: t.seniority } })}
+            onClick={() => navigate({
+              to: "/candidates",
+              search: t.seniority ? { seniority: t.seniority } : {},
+            })}
             className={cn("p-5 border-0 shadow-[var(--shadow-soft)] rounded-lg text-left hover:shadow-[var(--shadow-card)] transition-shadow", TONE_BG[t.tone])}
           >
             <p className="text-[11px] uppercase tracking-[0.14em] text-foreground/60">{t.label}</p>
@@ -310,13 +315,16 @@ function StatCardsRow({
                 <YAxis tick={{ fontSize: 10, fill: "currentColor" }} stroke="var(--border)" allowDecimals={false} />
                 <Bar
                   dataKey="count"
-                  fill="var(--metric-sky)"
                   radius={[3, 3, 0, 0]}
                   cursor="pointer"
                   onClick={(d: { bucket?: string }) => {
                     if (d?.bucket) navigate({ to: "/candidates", search: { location: d.bucket } });
                   }}
-                />
+                >
+                  {(data?.geography ?? []).map((_, i) => (
+                    <Cell key={i} fill={["#1e3a5f", "#d4a017", "#5b8c5a", "#c0392b", "#7d3c98"][i % 5]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}
