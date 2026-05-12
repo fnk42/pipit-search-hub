@@ -31,7 +31,13 @@ export function CandidateFilters({
   value, onChange, role,
 }: { value: Filters; onChange: (v: Filters) => void; role: "recruiter" | "client" }) {
   const has = value.search || value.stage || value.location || value.irFunction
-    || value.owner || value.sourcedBy || value.screenOutReason || value.clientVisible !== "all";
+    || value.owner || value.sourcedBy || value.screenOutReason || value.seniority || value.clientVisible !== "all";
+
+  const SENIORITY_LABEL: Record<string, string> = {
+    vp: "VP / SVP / EVP",
+    seniorAssociate: "Senior Associate",
+    tooSenior: "Too senior",
+  };
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-3 shadow-[var(--shadow-soft)]">
