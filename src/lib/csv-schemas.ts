@@ -46,7 +46,7 @@ export const SCREEN_OUT_REASONS = [
   "Other",
 ] as const;
 
-export const PE_STATUSES = ["Target", "Contacted", "Sourced From", "Declined", "Not Relevant"] as const;
+export const PE_STATUSES = ["Not started", "Target", "Contacted", "Sourced From", "Searched--candidates added", "Searched--No IR identified", "Blocked--manual review needed", "Declined", "Not Relevant"] as const;
 export const PE_TIERS = ["Tier 1", "Tier 2", "Tier 3"] as const;
 
 export type PipelineStage = (typeof PIPELINE_STAGES)[number];
