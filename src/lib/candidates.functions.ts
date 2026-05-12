@@ -97,6 +97,7 @@ const candidateInput = z.object({
   date_sourced: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().optional()),
   client_visible: z.boolean().default(false),
   shortlisted: z.boolean().default(false),
+  fit: z.enum(CANDIDATE_FITS).optional(),
 });
 
 export const createCandidate = createServerFn({ method: "POST" })
@@ -141,7 +142,21 @@ export const setShortlist = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { error } = await context.supabase
       .from("candidates")
-      .update({ shortlisted: data.shortlisted })
+      .update({ fit: data.shortlisted ? "Target Fit" : "Unassessed" })
+      .in("id", data.ids);
+    if (error) throw new Error(error.message);
+    return { ok: true, count: data.ids.length };
+  });
+
+export const setFit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ ids: z.array(z.string().uuid()).min(1).max(500), fit: z.enum(CANDIDATE_FITS) }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { error } = await context.supabase
+      .from("candidates")
+      .update({ fit: data.fit })
       .in("id", data.ids);
     if (error) throw new Error(error.message);
     return { ok: true, count: data.ids.length };
