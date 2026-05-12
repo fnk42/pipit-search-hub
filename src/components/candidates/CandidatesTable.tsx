@@ -87,7 +87,7 @@ export function CandidatesTable({
   if (rows.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-[#EAECF0] bg-white p-10 text-center">
-        <p className="text-sm text-[#475467]">No candidates match these filters.</p>
+        <p className="text-[12px] text-[#475467]">No candidates match these filters.</p>
       </div>
     );
   }
@@ -95,8 +95,8 @@ export function CandidatesTable({
   const allSelected = isRecruiter && selected && rows.length > 0 && selected.size === rows.length;
 
   const FitChip = ({ value }: { value: CandidateFit }) => (
-    <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${FIT_CLASS[value]}`}>
-      {value === "Target Fit" && <Star className="h-3 w-3 fill-current" />}
+    <span className={`inline-flex items-center gap-1 rounded border px-1.5 py-0 text-[11px] font-medium leading-[18px] whitespace-nowrap ${FIT_CLASS[value]}`}>
+      {value === "Target Fit" && <Star className="h-2.5 w-2.5 fill-current" />}
       {value}
     </span>
   );
@@ -110,16 +110,19 @@ export function CandidatesTable({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 {c.linkedin_url ? (
-                  <a href={c.linkedin_url} target="_blank" rel="noreferrer" className="font-medium text-sm text-[#101828] truncate flex items-center gap-1.5 hover:text-[#1570EF]">
+                  <a href={c.linkedin_url} target="_blank" rel="noreferrer" className="font-medium text-[13px] text-[#101828] truncate flex items-center gap-1.5 hover:text-[#1570EF]">
                     <span className="truncate">{c.name}</span>
                     <ExternalLink className="h-3 w-3 shrink-0 text-[#667085]" />
                   </a>
                 ) : (
-                  <Link to="/candidates/$id" params={{ id: c.id }} className="font-medium text-sm text-[#101828] truncate flex items-center gap-1.5 hover:text-[#1570EF]">
+                  <Link to="/candidates/$id" params={{ id: c.id }} className="font-medium text-[13px] text-[#101828] truncate flex items-center gap-1.5 hover:text-[#1570EF]">
                     <span className="truncate">{c.name}</span>
                   </Link>
                 )}
-                <span className="text-xs text-[#475467] truncate block">
+                {c.current_title && (
+                  <span className="text-[11px] text-[#475467] truncate block">{c.current_title}</span>
+                )}
+                <span className="text-[11px] text-[#475467] truncate block">
                   {c.current_firm ?? "—"}
                 </span>
                 <div className="mt-1.5"><FitChip value={c.fit} /></div>
@@ -132,70 +135,75 @@ export function CandidatesTable({
 
       {/* Desktop table — Untitled UI */}
       <div className="hidden sm:block rounded-lg border border-[#EAECF0] bg-white overflow-hidden">
-        <Table className="w-full table-fixed">
-          <colgroup>
-            {isRecruiter && <col style={{ width: 44 }} />}
-            <col style={{ minWidth: 200 }} />
-            <col style={{ minWidth: 180 }} />
-            <col style={{ minWidth: 200 }} />
-            <col style={{ minWidth: 120 }} />
-            <col style={{ minWidth: 120 }} />
-            {isRecruiter && <col style={{ minWidth: 220 }} />}
-            {isRecruiter && <col style={{ width: 60 }} />}
-            {isRecruiter && <col style={{ width: 44 }} />}
-          </colgroup>
+        <Table className="w-full table-auto">
           <TableHeader>
             <TableRow className="bg-[#F9FAFB] border-b border-[#EAECF0] hover:bg-[#F9FAFB]">
               {isRecruiter && (
-                <TableHead className="px-3 py-3">
+                <TableHead className="px-3 py-3 w-[44px]">
                   <Checkbox checked={allSelected} onCheckedChange={() => onToggleAll?.()} aria-label="Select all" className="border-[#D0D5DD]" />
                 </TableHead>
               )}
               <Th>Name</Th>
-              <Th>Company</Th>
-              <Th>Stage</Th>
-              <Th>Fit</Th>
-              <Th>Location</Th>
-              {isRecruiter && <Th>Screen out reason</Th>}
-              {isRecruiter && <Th className="text-right">Visible</Th>}
-              {isRecruiter && <Th></Th>}
+              <Th style={{ width: 180 }}>Company</Th>
+              <Th style={{ width: 170 }}>Stage</Th>
+              <Th style={{ width: 110 }}>Fit</Th>
+              <Th style={{ width: 110 }}>Location</Th>
+              {isRecruiter && <Th style={{ width: 200 }}>Screen out reason</Th>}
+              {isRecruiter && <Th style={{ width: 60 }} className="text-right">Visible</Th>}
+              {isRecruiter && <Th style={{ width: 44 }}></Th>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map((c) => {
               const isRej = REJ.has(c.pipeline_stage);
+              const isSelected = selected?.has(c.id) ?? false;
               return (
-                <TableRow key={c.id} className="h-[52px] border-b border-[#EAECF0] hover:bg-[#F9FAFB]">
+                <TableRow
+                  key={c.id}
+                  className={`border-b border-[#EAECF0] hover:bg-[#F9FAFB] ${isSelected ? "bg-[#F9FAFB]" : ""}`}
+                  style={{ minHeight: 64 }}
+                >
                   {isRecruiter && (
-                    <TableCell className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                    <TableCell className="px-3 py-2.5 align-middle" onClick={(e) => e.stopPropagation()}>
                       <Checkbox
-                        checked={selected?.has(c.id) ?? false}
+                        checked={isSelected}
                         onCheckedChange={() => onToggleRow?.(c.id)}
                         aria-label={`Select ${c.name}`}
                         className="border-[#D0D5DD]"
                       />
                     </TableCell>
                   )}
-                  <TableCell className="px-3 py-3 align-middle text-sm font-medium text-[#101828]">
-                    {c.linkedin_url ? (
-                      <a href={c.linkedin_url} target="_blank" rel="noreferrer"
-                         className="inline-flex items-center gap-1.5 hover:text-[#1570EF]" title={c.name}>
-                        <span className="truncate">{c.name}</span>
-                        <ExternalLink className="h-4 w-4 text-[#667085] shrink-0" />
-                      </a>
-                    ) : (
-                      <Link to="/candidates/$id" params={{ id: c.id }}
-                            className="hover:text-[#1570EF]" title={c.name}>
-                        {c.name}
-                      </Link>
-                    )}
+                  <TableCell className="px-3 py-2.5 align-middle">
+                    <div className="min-w-0">
+                      <div className="text-[13px] font-medium text-[#101828] truncate">
+                        {c.linkedin_url ? (
+                          <a href={c.linkedin_url} target="_blank" rel="noreferrer"
+                             className="inline-flex items-center gap-1.5 hover:text-[#1570EF] max-w-full" title={c.name}>
+                            <span className="truncate">{c.name}</span>
+                            <ExternalLink className="h-3.5 w-3.5 text-[#667085] shrink-0" />
+                          </a>
+                        ) : (
+                          <Link to="/candidates/$id" params={{ id: c.id }}
+                                className="hover:text-[#1570EF] truncate block" title={c.name}>
+                            {c.name}
+                          </Link>
+                        )}
+                      </div>
+                      {c.current_title && (
+                        <div className="text-[11px] text-[#475467] truncate" title={c.current_title}>
+                          {c.current_title}
+                        </div>
+                      )}
+                    </div>
                   </TableCell>
-                  <TableCell className="px-3 py-3 align-middle text-sm text-[#475467]">
-                    {isRecruiter ? (
-                      <EditableText value={c.current_firm} onSave={(v) => patch(c.id, { current_firm: v })} placeholder="—" />
-                    ) : (c.current_firm ?? "—")}
+                  <TableCell className="px-3 py-2.5 align-middle text-[12px] text-[#475467] max-w-[180px]">
+                    <div className="truncate" title={c.current_firm ?? ""}>
+                      {isRecruiter ? (
+                        <EditableText value={c.current_firm} onSave={(v) => patch(c.id, { current_firm: v })} placeholder="—" />
+                      ) : (c.current_firm ?? "—")}
+                    </div>
                   </TableCell>
-                  <TableCell className="px-3 py-3 align-middle">
+                  <TableCell className="px-3 py-2.5 align-middle">
                     {isRecruiter ? (
                       <EditableSelect
                         value={c.pipeline_stage}
@@ -205,7 +213,7 @@ export function CandidatesTable({
                       />
                     ) : <StageBadge stage={c.pipeline_stage} />}
                   </TableCell>
-                  <TableCell className="px-3 py-3 align-middle">
+                  <TableCell className="px-3 py-2.5 align-middle">
                     {isRecruiter ? (
                       <EditableSelect
                         value={c.fit}
@@ -215,7 +223,7 @@ export function CandidatesTable({
                       />
                     ) : <FitChip value={c.fit} />}
                   </TableCell>
-                  <TableCell className="px-3 py-3 align-middle text-sm text-[#475467]">
+                  <TableCell className="px-3 py-2.5 align-middle text-[12px] text-[#475467]">
                     {isRecruiter ? (
                       <EditableSelect
                         value={c.location_bucket} options={LOCATION_BUCKETS} allowEmpty
@@ -224,7 +232,7 @@ export function CandidatesTable({
                     ) : (c.location_bucket ?? "—")}
                   </TableCell>
                   {isRecruiter && (
-                    <TableCell className="px-3 py-3 align-middle text-sm text-[#475467]">
+                    <TableCell className="px-3 py-2.5 align-middle text-[12px] text-[#475467] max-w-[200px]">
                       <div className="truncate" title={c.screen_out_reason ?? ""}>
                         <EditableSelect
                           value={c.screen_out_reason} options={SCREEN_OUT_REASONS} allowEmpty
@@ -236,7 +244,7 @@ export function CandidatesTable({
                     </TableCell>
                   )}
                   {isRecruiter && (
-                    <TableCell className="px-3 py-3 align-middle text-right">
+                    <TableCell className="px-3 py-2.5 align-middle text-right">
                       <button
                         onClick={(e) => { e.stopPropagation(); setPendingId(c.id); toggleVis.mutate(c, { onSettled: () => setPendingId(null) }); }}
                         className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-[#F2F4F7] text-[#667085] hover:text-[#101828]"
@@ -248,7 +256,7 @@ export function CandidatesTable({
                     </TableCell>
                   )}
                   {isRecruiter && (
-                    <TableCell className="px-3 py-3 align-middle text-right">
+                    <TableCell className="px-3 py-2.5 align-middle text-right">
                       <button
                         onClick={(e) => { e.stopPropagation(); setConfirmDelete(c); }}
                         className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#667085] hover:bg-[#FEF3F2] hover:text-[#B42318]"
@@ -289,10 +297,11 @@ export function CandidatesTable({
   );
 }
 
-function Th({ children, className }: { children?: React.ReactNode; className?: string }) {
+function Th({ children, className, style }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
     <TableHead
-      className={`px-3 py-3 h-auto text-[11px] font-medium uppercase tracking-[0.05em] text-[#475467] ${className ?? ""}`}
+      style={style}
+      className={`px-3 py-3 h-auto text-[12px] font-medium uppercase tracking-[0.04em] text-[#475467] ${className ?? ""}`}
     >
       {children}
     </TableHead>
