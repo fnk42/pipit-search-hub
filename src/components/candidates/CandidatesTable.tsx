@@ -135,20 +135,19 @@ export function CandidatesTable({
 
       {/* Desktop table — Untitled UI */}
       <div className="hidden sm:block rounded-lg border border-[#EAECF0] bg-white overflow-hidden">
-        <Table className="w-full table-auto">
-          <TableHeader>
+        <Table className="w-full table-fixed">
+          <TableHeader className="sticky top-0 z-10 bg-[#F9FAFB]">
             <TableRow className="bg-[#F9FAFB] border-b border-[#EAECF0] hover:bg-[#F9FAFB]">
               {isRecruiter && (
-                <TableHead className="px-3 py-3 w-[44px]">
-                  <Checkbox checked={allSelected} onCheckedChange={() => onToggleAll?.()} aria-label="Select all" className="border-[#D0D5DD]" />
+                <TableHead className="px-3 py-3 w-[40px]">
+                  <Checkbox checked={allSelected} onCheckedChange={() => onToggleAll?.()} aria-label="Select all" className="border-[#D0D5DD] data-[state=checked]:bg-[#1570EF] data-[state=checked]:border-[#1570EF]" />
                 </TableHead>
               )}
-              <Th>Name</Th>
-              <Th style={{ width: 180 }}>Company</Th>
+              <Th style={{ width: 200 }}>Name</Th>
               <Th style={{ width: 170 }}>Stage</Th>
-              <Th style={{ width: 110 }}>Fit</Th>
-              <Th style={{ width: 110 }}>Location</Th>
-              {isRecruiter && <Th style={{ width: 200 }}>Screen out reason</Th>}
+              <Th style={{ width: 100 }}>Fit</Th>
+              <Th style={{ width: 120 }}>Location</Th>
+              {isRecruiter && <Th style={{ width: 180 }}>Screen out reason</Th>}
               {isRecruiter && <Th style={{ width: 60 }} className="text-right">Visible</Th>}
               {isRecruiter && <Th style={{ width: 44 }}></Th>}
             </TableRow>
