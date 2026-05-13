@@ -82,18 +82,21 @@ export function EditableSelect({
   value, onSave, options, placeholder, disabled, allowEmpty, display, className,
 }: Common & { options: readonly string[]; allowEmpty?: boolean }) {
   const [editing, setEditing] = useState(false);
+  const savingRef = useRef(false);
   const NONE = "__none__";
   if (editing && !disabled) {
     return (
       <Select
-        defaultValue={value || (allowEmpty ? NONE : undefined)}
+        value={value || (allowEmpty ? NONE : "")}
         onValueChange={async (v) => {
-          setEditing(false);
+          savingRef.current = true;
           const next = v === NONE ? null : v;
           if ((next ?? "") !== (value ?? "")) await onSave(next);
+          savingRef.current = false;
+          setEditing(false);
         }}
         open
-        onOpenChange={(o) => { if (!o) setEditing(false); }}
+        onOpenChange={(o) => { if (!o && !savingRef.current) setEditing(false); }}
       >
         <SelectTrigger className="h-7 text-sm py-0 border-[#1570EF] shadow-[0_0_0_4px_#E0EAFF]"><SelectValue /></SelectTrigger>
         <SelectContent>
