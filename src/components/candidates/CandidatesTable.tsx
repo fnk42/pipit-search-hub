@@ -159,47 +159,38 @@ export function CandidatesTable({
               return (
                 <TableRow
                   key={c.id}
-                  className={`border-b border-[#EAECF0] hover:bg-[#F9FAFB] ${isSelected ? "bg-[#F9FAFB]" : ""}`}
-                  style={{ minHeight: 64 }}
+                  className={`border-b border-[#EAECF0] hover:bg-[#F9FAFB] ${isSelected ? "bg-[#F9F5FF] hover:bg-[#F9F5FF]" : ""}`}
+                  style={{ height: 48 }}
                 >
                   {isRecruiter && (
-                    <TableCell className="px-3 py-2.5 align-middle" onClick={(e) => e.stopPropagation()}>
+                    <TableCell className="px-3 py-0 align-middle" onClick={(e) => e.stopPropagation()}>
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={() => onToggleRow?.(c.id)}
                         aria-label={`Select ${c.name}`}
-                        className="border-[#D0D5DD]"
+                        className="border-[#D0D5DD] data-[state=checked]:bg-[#1570EF] data-[state=checked]:border-[#1570EF]"
                       />
                     </TableCell>
                   )}
-                  <TableCell className="px-3 py-2.5 align-middle">
-                    <div className="min-w-0">
-                      <div className="text-[13px] font-medium text-[#101828] truncate">
+                  <TableCell className="px-3 py-0 align-middle">
+                    <div className="min-w-0 flex flex-col gap-[2px]">
+                      <div className="text-[14px] font-medium text-[#1570EF] leading-[18px] truncate">
                         {c.linkedin_url ? (
                           <a href={c.linkedin_url} target="_blank" rel="noreferrer"
-                             className="inline-flex items-center gap-1.5 hover:text-[#1570EF] max-w-full" title={c.name}>
+                             className="inline-flex items-center gap-1.5 max-w-full hover:underline" title={c.name}>
                             <span className="truncate">{c.name}</span>
                             <ExternalLink className="h-3.5 w-3.5 text-[#667085] shrink-0" />
                           </a>
                         ) : (
                           <Link to="/candidates/$id" params={{ id: c.id }}
-                                className="hover:text-[#1570EF] truncate block" title={c.name}>
+                                className="hover:underline truncate block" title={c.name}>
                             {c.name}
                           </Link>
                         )}
                       </div>
-                      {c.current_title && (
-                        <div className="text-[11px] text-[#475467] truncate" title={c.current_title}>
-                          {c.current_title}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-3 py-2.5 align-middle text-[12px] text-[#475467] max-w-[180px]">
-                    <div className="truncate" title={c.current_firm ?? ""}>
-                      {isRecruiter ? (
-                        <EditableText value={c.current_firm} onSave={(v) => patch(c.id, { current_firm: v })} placeholder="—" />
-                      ) : (c.current_firm ?? "—")}
+                      <div className="text-[12px] text-[#475467] leading-[16px] truncate" title={c.current_firm ?? ""}>
+                        {c.current_firm ?? "—"}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="px-3 py-2.5 align-middle">
